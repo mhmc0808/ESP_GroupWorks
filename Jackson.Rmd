@@ -37,7 +37,7 @@ for (left_bracket in left_brackets) {
 a = a[-directions]
 
 #?? not sure if unmatched brackets are handled correctly
-
+#?? is this efficient with the looping
 
 
 ```
@@ -46,17 +46,9 @@ a = a[-directions]
 ```{r}
 # 4. b
 
-upper_case_version = toupper(a)
-upper_and_arabic = c()
-for (idx in 1:length(a)){
-  word = a[idx]
-  word_upper = upper_case_version[idx]
-  if (word == "I" | word == "A" | word != word_upper) {
-    next
-} else {
-  upper_and_arabic = c(upper_and_arabic, idx)
-}}
-a = a[-upper_and_arabic]
+
+a = a[which(a == "I" | a == "A" | a != toupper(a))]
+
 
 
 ```
@@ -74,17 +66,21 @@ a = gsub("[_-]", "", a)
 # 4. d
 
 split_punct = function(w, p) {
-  w = gsub(",", " ,", w)
-  w = gsub("\\.", " .", w)
-  w = gsub(";", " ;", w)
-  w = gsub("!", " !", w)
-  w = gsub(":", " :", w)
-  w = gsub("\\?", " ?", w)
-  w = paste(w, collapse=" ")
-  out = strsplit(w, split= " ")[[1]]
+  for (punct in p) {
+    if (punct == "." | punct == "?") {
+      punct_escaped = paste("\\", punct, sep = "")
+    } else {
+      punct_escaped = punct
+    }
+    
+    w = gsub(punct_escaped, paste(" ", punct, sep = ""), w)
+  }
   
+  w = paste(w, collapse = " ")
+  out = strsplit(w, split = " ")[[1]]
   return(out)
 }
+
 
 ```
 
@@ -95,7 +91,6 @@ split_punct = function(w, p) {
 p_to_use = c(",", ".", ";", "!", ":", "?")
 
 a = split_punct(a, p_to_use)
-
 
 ```
 
