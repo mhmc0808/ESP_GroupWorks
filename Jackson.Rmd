@@ -1,0 +1,133 @@
+---
+title: "Practical 1"
+output:
+pdf_document: default
+---
+
+```{r}
+# Step 3.
+
+setwd("/Users/jackonsmacbookpro/Desktop/Extended Statistical Programming/Practicals/ExtendedStatisticalProgramming") ## comment out of submitted
+a <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
+fileEncoding="UTF-8")
+
+```
+
+
+```{r}
+# Step 4. a
+
+# Identify indices of words with left brackets
+left_brackets = grep("[",a,fixed=TRUE)
+
+# Identify indices of words with right brackets
+right_brackets = grep("]",a,fixed=TRUE)
+
+# Loop through each instance of a left bracket and identify index of the right bracket within next 100 words. For each iteration, delete the words between each set of brackets
+directions = c()
+for (left_bracket in left_brackets) {
+  potential_right_bracket = right_brackets[right_brackets >= left_bracket & right_brackets <= left_bracket + 100]
+  
+  if (length(potential_right_bracket) > 0) {
+    right_bracket = potential_right_bracket[1] # select nearest right bracket
+    directions = c(directions, left_bracket:right_bracket)
+  }
+}
+
+a = a[-directions]
+
+#?? not sure if unmatched brackets are handled correctly
+
+
+
+```
+
+
+```{r}
+# 4. b
+
+upper_case_version = toupper(a)
+upper_and_arabic = c()
+for (idx in 1:length(a)){
+  word = a[idx]
+  word_upper = upper_case_version[idx]
+  if (word == "I" | word == "A" | word != word_upper) {
+    next
+} else {
+  upper_and_arabic = c(upper_and_arabic, idx)
+}}
+a = a[-upper_and_arabic]
+
+
+```
+
+```{r}
+# 4. c
+
+a = gsub("[_-]", "", a)
+
+
+```
+
+
+```{r}
+# 4. d
+
+split_punct = function(w, p) {
+  w = gsub(",", " ,", w)
+  w = gsub("\\.", " .", w)
+  w = gsub(";", " ;", w)
+  w = gsub("!", " !", w)
+  w = gsub(":", " :", w)
+  w = gsub("\\?", " ?", w)
+  w = paste(w, collapse=" ")
+  out = strsplit(w, split= " ")[[1]]
+  
+  return(out)
+}
+
+```
+
+
+```{r}
+# 4. e
+
+p_to_use = c(",", ".", ";", "!", ":", "?")
+
+a = split_punct(a, p_to_use)
+
+
+```
+
+```{r}
+# 4. f
+
+a = tolower(a)
+
+
+```
+
+
+```{r}
+# 5.
+
+# a.
+unique_words = unique(a)
+
+# b.
+unique_idx = match(a, unique_words)
+
+# c.
+freq = tabulate(unique_idx)
+
+# d.
+ranked_freq = rank(-freq, ties.method="average")
+b
+
+
+
+```
+
+
+
+
