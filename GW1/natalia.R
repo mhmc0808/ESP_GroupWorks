@@ -2,7 +2,7 @@
 # brief description of work
 
 
-# setwd("/Users/natmo/OneDrive/Escritorio/MSc/SEM1/Extended_Stat")
+# setwd("/Users/natmo/OneDrive/Escritorio/MSc/SEM1/Extended_Stat/GW1")
 
 a <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
           fileEncoding="UTF-8")    
@@ -42,14 +42,12 @@ a <- a[-stage_dir_delete]
 # find the upper words 
 
 upper_words <- a == toupper(a) # return logic, if si son mayusculas en new_a
-words_to_keep <- new_a %in% c("I", "A") #returns a logic, if a word in new_A is == to a word in c("I", "A") --> true
+words_to_keep <- a %in% c("I", "A") #returns a logic, if a word in new_A is == to a word in c("I", "A") --> true
 remove_upper <- which(upper_words & !words_to_keep) # upper words and false
 a <- a[-remove_upper]
 
-
 numbers <- grep("^[0-9]+$", a)
 a <- a[-numbers]
-
 
 
 ###### 4.c Remove “-” and “_” from words
@@ -67,13 +65,11 @@ split_punct <- function(){
   strsplit(parts, " ", fixed = TRUE)[[1]]
 }
 
-
+## need to check this
 
 ###### 4.f Vector in lower case
 
-
 a <- tolower(a)
-
 
 
 ###### 5. find most frequent words
@@ -107,12 +103,37 @@ top_words <- b[top_idx]
 
 top_words_idx <- match(a, top_words)
 
+# how forward we look
+mlag = 4    # we can change and see how it works
+n = length(a)
+
+M <- matrix(n-mlag, mlag+1)
+
+# add words in first column and 
+for (m in 1:(mlag+1)){
+  M[,m] <- index_top_words[m:(n-5+m)]
+}
+
+## 7. matrices of common word token sentences.
+
+# next.word <- function(key,M,M1,w=rep(1,ncol(M)-1))
 
 
 
+  
+  
+  
+## 8. Start key
 
+p <- c(",", ".", ";", "!", ":", "?")
 
+# select a random word 
 
+chosen_word <- "romeo"
+chosen_word <- sample(a, 1)
+if (chosen_word %in% words| !(chosen_word %in% p)){
+  start_key <- chosen_word
+}
 
 
 
