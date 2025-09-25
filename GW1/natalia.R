@@ -31,13 +31,9 @@ for (i in index_stage_dir) {
   }
 }
 
-
 a <- a[-stage_dir_delete]
 
-
-
 ###### 4.b Remove words fully Upper case and numbers
-
 
 # find the upper words 
 
@@ -64,8 +60,12 @@ split_punct <- function(){
   parts <- sub("^(\\w+)([[:punct:]]+)$", "\\1 \\2", xi)
   strsplit(parts, " ", fixed = TRUE)[[1]]
 }
+<<<<<<< HEAD
 
 ## need to check this
+=======
+### need to check this
+>>>>>>> 5a2631c3e301e0ae5e5cea31122d84217ff94570
 
 ###### 4.f Vector in lower case
 
