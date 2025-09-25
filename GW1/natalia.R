@@ -2,7 +2,7 @@
 # brief description of work
 
 
-# setwd("/Users/natmo/OneDrive/Escritorio/MSc/SEM1/Extended_Stat")
+# setwd("/Users/natmo/OneDrive/Escritorio/MSc/SEM1/Extended_Stat/GW1")
 
 a <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
           fileEncoding="UTF-8")    
@@ -31,13 +31,9 @@ for (i in index_stage_dir) {
   }
 }
 
-
 a <- a[-stage_dir_delete]
 
-
-
 ###### 4.b Remove words fully Upper case and numbers
-
 
 # find the upper words 
 
@@ -46,10 +42,8 @@ words_to_keep <- new_a %in% c("I", "A") #returns a logic, if a word in new_A is 
 remove_upper <- which(upper_words & !words_to_keep) # upper words and false
 a <- a[-remove_upper]
 
-
 numbers <- grep("^[0-9]+$", a)
 a <- a[-numbers]
-
 
 
 ###### 4.c Remove “-” and “_” from words
@@ -66,14 +60,12 @@ split_punct <- function(){
   parts <- sub("^(\\w+)([[:punct:]]+)$", "\\1 \\2", xi)
   strsplit(parts, " ", fixed = TRUE)[[1]]
 }
-
-
+### need to check this
 
 ###### 4.f Vector in lower case
 
 
 a <- tolower(a)
-
 
 
 ###### 5. find most frequent words
