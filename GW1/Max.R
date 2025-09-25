@@ -121,12 +121,18 @@ next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
   # w - vector of mixture weights
   key_length <- length(key)
   mc <- mlag - key_length +1
-  # initialise next_word as NA
+  # initialise next_word and match_rows as NA 
   next_word <- NA
+  match_rows <- c()
   
   # finds the rows of M where the text matches the key
-  ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key))
-  match_rows <- which(ii == 0 & is.finite(ii))
+  while (length(match_rows) == 0){
+    ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key))
+    match_rows <- which(ii == 0 & is.finite(ii))
+    print(match_rows)
+    key <- key[2:length(key)]
+    print(key)
+  }
   print(match_rows)
 
   # now randomly selects the next word following the key in the text
@@ -137,6 +143,7 @@ next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
   }
   return(next_word)
 }
+
 
 # Ex 8 + 9
 
@@ -181,14 +188,8 @@ sim_shakespeare <- function(key_length, M, M1, top_words){
 
 
 # Let's simulate Shakespeare
-sim_shakespeare(2, M, M1, top_words)
+sim_shakespeare(4, M, M1, top_words)
 
 
 
-
-
-# the O's (not mentioned as a special case)
-# ACT I - should we remove this separately for more complete analysis?
-# how do we deal with -? remove, make two words or ignore?
-#
 
