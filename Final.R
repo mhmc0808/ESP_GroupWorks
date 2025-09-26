@@ -1,3 +1,6 @@
+# names and university user names of each member of the group
+# brief description of what each team member contributed to the project
+
 #setwd("GW1") ## comment out of submitted
 a <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
           fileEncoding="UTF-8")
@@ -9,6 +12,7 @@ a <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
 stage_start = grep("[",a,fixed=TRUE)
 
 stage_directions <- c()
+
 # loop for each opening bracket
 for (left_bracket in stage_start){
   # find closing brackets indexes in next 100 words after opening bracket
@@ -39,10 +43,8 @@ split_punct = function(w, p) {
     } else {
       punct_escaped = punct
     }
-    
     w = gsub(punct_escaped, paste(" ", punct, sep = ""), w)
   }
-  
   w = paste(w, collapse = " ")
   out = strsplit(w, split = " ")[[1]]
   return(out)
