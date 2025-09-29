@@ -1,12 +1,14 @@
 # names and university user names of each member of the group
 # brief description of what each team member contributed to the project
 
-#setwd("GW1") ## comment out of submitted
+# Exercise 3
+
+# setwd("GW1") ## comment out of submitted
 a <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
           fileEncoding="UTF-8")
 
 
-### PREPROCESSING
+# Exercise 4
 
 # drop stage directions
 stage_start = grep("[",a,fixed=TRUE)
@@ -29,42 +31,37 @@ a <- a[-stage_directions]
 
 # Drop names and numbers
 
-a = a[which(a == "I" | a == "A" | a == "O" | a != toupper(a))]
+a <- a[which(a == "I" | a == "A" | a == "O" | a != toupper(a))]
 
 # get rid of _ and -
-a = gsub("[_-]", "", a)
+a <- gsub("[_-]", "", a)
 
 
-# Ex 4: Make punctuation marks into their own words
-split_punct = function(w, p) {
+# Make punctuation marks into their own words
+split_punct <- function(w, p) {
   for (punct in p) {
-    if (punct == "." | punct == "?") {
-      punct_escaped = paste("\\", punct, sep = "")
-    } else {
-      punct_escaped = punct
-    }
-    w = gsub(punct_escaped, paste(" ", punct, sep = ""), w)
+    w <- gsub(punct, paste(" ", punct, sep = ""), w, fixed=TRUE)
   }
-  w = paste(w, collapse = " ")
-  out = strsplit(w, split = " ")[[1]]
+  w <- paste(w, collapse = " ")
+  out <- strsplit(w, split = " ")[[1]]
   return(out)
 }
 
-p_to_use = c(",", ".", ";", "!", ":", "?")
+p_to_use <- c(",", ".", ";", "!", ":", "?")
 
-a = split_punct(a, p_to_use)
+a <- split_punct(a, p_to_use)
 
 
 # make all lower case for simplicity
 a <- tolower(a)
 
 
-# Ex 5: Matching
+# Exercise 5
 
 # all unique words
-unique_words <- unique(a_4)
+unique_words <- unique(a)
 # index of each word's occurence in the text
-index_vector <- match(a_4, unique_words)
+index_vector <- match(a, unique_words)
 # word frequencies of unique words
 word_frequencies <- tabulate(index_vector)
 # rank the frequencies
@@ -75,26 +72,25 @@ top_indices <- which(frequency_ranks <= 1000)
 b <- unique_words[top_indices]
 
 
-# Ex 6
+# Exercise 6
 
 # index of top words positions in text
-index_top_words <- match(a, top_words)
+index_b <- match(a, b)
 
 # choose mlag 
 mlag <- 4
-n <- length(a_4)
+n <- length(a)
 
 # initialise M matrix with dimension (n-mlag) x (mlag+1)
 M <- matrix(nrow=n-mlag, ncol=mlag+1)
 # Put top words index into 1st colm of matrix, then three lags in subsequent colms
 for (m in 1:(mlag+1)){
-  M[,m] <- index_top_words[m:(n-(mlag+1)+m)]
+  M[,m] <- index_b[m:(n-(mlag+1)+m)]
 }
 
 
-## SENTENCE GENERATION
+# Exercise 7
 
-# Ex 7
 
 # Function that randomly generates the next word of a given key using the text
 next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
@@ -102,27 +98,25 @@ next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
   # M is matrix M with top word indexed and lags
   # M1 is the indexing vector of the entire text (index_vector)
   # w - vector of mixture weights
-  key_length <- length(key)
-  mc <- mlag - key_length +1
-  # initialise next_word and match_rows as NA 
+  # initialise next_word and match_rows as NA
   next_word <- NA
   match_rows <- c()
   
   # finds the rows of M where the text matches the key
   while (length(match_rows) == 0){
+    mc <- mlag - length(key) +1
+    
     ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key))
     match_rows <- which(ii == 0 & is.finite(ii))
-    print(match_rows)
+    
     key <- key[2:length(key)]
-    print(key)
   }
-  print(match_rows)
-
+  
   # now randomly selects the next word following the key in the text
   # (if NA, chooses again)
   while (is.na(next_word)){
-  random_row <- sample(match_rows, 1)
-  next_word <- M[random_row,mlag+1]
+    random_row <- sample(match_rows, 1)
+    next_word <- M[random_row,mlag+1]
   }
   return(next_word)
 }
@@ -147,9 +141,6 @@ sim_shakespeare <- function(key_length, M, M1, top_words){
   period_index <- (which(top_words=="."))
   while (key_sentence[length(key_sentence)] != period_index){
     
-    print(key)
-    
-    
     # Take next word using next.word function
     next_word <- next.word(key, M, M1)
     # append next_word to sentence
@@ -164,13 +155,17 @@ sim_shakespeare <- function(key_length, M, M1, top_words){
     }
     # collapse sentence
     sentence <- paste(top_words[key_sentence], collapse=" ")
-    print(sentence)
+    
   }
   return(sentence)
 }
 
 
 # Let's simulate Shakespeare
-sim_shakespeare(4, M, M1, top_words)
+sim_shakespeare(2, M, M1, b)
+
+
+
+
 
 
