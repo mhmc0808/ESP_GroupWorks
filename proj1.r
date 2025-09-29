@@ -14,6 +14,7 @@
 
 # Exercise 3
 
+# set working directory and read shakespeare text into R environment
 # setwd("GW1") ## comment out of submitted
 a <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
           fileEncoding="UTF-8")
@@ -21,49 +22,46 @@ a <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
 
 # Exercise 4
 
-# drop stage directions
+# to remove stage directions (words located between square brackets), first locate all indices of opening brackets
 stage_start = grep("[",a,fixed=TRUE)
-
-stage_directions <- c()
-
-# loop for each opening bracket
+stage_dir <- c()
+# loop through each opening bracket
 for (left_bracket in stage_start){
-  # find closing brackets indexes in next 100 words after opening bracket
+  # find closing bracket indices in next 100 words after opening bracket
   stage_end = grep("]", a[(left_bracket):(left_bracket+100)], fixed=TRUE)
-  # find index of first closing bracket after opening bracket
+  # find index of first closing bracket after opening bracket, but first ensure there is a closing bracket
   if (length(stage_end) > 0) {
     right_bracket <- left_bracket-1+stage_end[1]
-    # append indexes corresponding to stage directions
-    stage_directions <- c(stage_directions, left_bracket:right_bracket)
+    # append indices corresponding to stage directions
+    stage_dir <- c(stage_dir, left_bracket:right_bracket)
   }}
-# dropped stage directions
-a <- a[-stage_directions]
+# remove all stage directions
+a <- a[-stage_dir]
 
 
-# Drop names and numbers
-
+# remove character names (fully upper case) and arabic numerals, but do not remove I, A, or O
 a <- a[which(a == "I" | a == "A" | a == "O" | a != toupper(a))]
 
-# get rid of _ and -
+# remove _ and - from words by replacing them by empty strings
 a <- gsub("[_-]", "", a)
 
-
-# Make punctuation marks into their own words
 split_punct <- function(w, p) {
+# for each punctuation p, place a space between the punctuation and connected word
   for (punct in p) {
     w <- gsub(punct, paste(" ", punct, sep = ""), w, fixed=TRUE)
   }
+# put word vector into one string, with each item seperated by a space
   w <- paste(w, collapse = " ")
+# split punctuation from words by splitting on empty space, returning a vector of words and punctuation marks
   out <- strsplit(w, split = " ")[[1]]
   return(out)
 }
 
 p_to_use <- c(",", ".", ";", "!", ":", "?")
-
+# apply split_punct function to seperate punctuation from words and make punctuation marks their own entries in a
 a <- split_punct(a, p_to_use)
 
-
-# make all lower case for simplicity
+# convert word vector a to lower case
 a <- tolower(a)
 
 
