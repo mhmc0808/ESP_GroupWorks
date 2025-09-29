@@ -45,6 +45,7 @@ a <- a[which(a == "I" | a == "A" | a == "O" | a != toupper(a))]
 # remove _ and - from words by replacing them by empty strings
 a <- gsub("[_-]", "", a)
 
+# to seperate punctuation marks from words, create a split_punct function that takes in word vector w and vector of punctuation marks p
 split_punct <- function(w, p) {
 # for each punctuation p, place a space between the punctuation and connected word
   for (punct in p) {
@@ -52,13 +53,13 @@ split_punct <- function(w, p) {
   }
 # put word vector into one string, with each item seperated by a space
   w <- paste(w, collapse = " ")
-# split punctuation from words by splitting on empty space, returning a vector of words and punctuation marks
+# split punctuation and words by splitting on empty space, returning a vector of single words and single punctuation marks
   out <- strsplit(w, split = " ")[[1]]
   return(out)
 }
 
 p_to_use <- c(",", ".", ";", "!", ":", "?")
-# apply split_punct function to seperate punctuation from words and make punctuation marks their own entries in a
+# apply split_punct function to word vector a using punctuation marks in p_to_use
 a <- split_punct(a, p_to_use)
 
 # convert word vector a to lower case
