@@ -75,12 +75,10 @@ top_indices <- which(frequency_ranks <= 1000)
 b <- unique_words[top_indices]
 
 
-## TEXT SETUP
-
 # Ex 6
 
 # index of top words positions in text
-index_b <- match(a, b)
+index_top_words <- match(a, top_words)
 
 # choose mlag 
 mlag <- 4
@@ -90,7 +88,7 @@ n <- length(a_4)
 M <- matrix(nrow=n-mlag, ncol=mlag+1)
 # Put top words index into 1st colm of matrix, then three lags in subsequent colms
 for (m in 1:(mlag+1)){
-  M[,m] <- index_b[m:(n-(mlag+1)+m)]
+  M[,m] <- index_top_words[m:(n-(mlag+1)+m)]
 }
 
 
