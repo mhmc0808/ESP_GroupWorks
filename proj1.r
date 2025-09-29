@@ -5,10 +5,11 @@
 # Natalia Montalvo Cabornero, s1969053
 
 # List of tasks completed by each group member:
-# Jackson Cramer -
-# Max McCourt -
-# Natalia Montalvo Cabornero - 
-
+# Jackson Cramer - primary focus on exercises 3 and 4.
+# Max McCourt - primary focus on exercises 7 and 8.
+# Natalia Montalvo Cabornero - primary focus on exercises 5 and 6.
+# We collaborative contributed on the development and optimization of each exercise. While we divided forces, 
+# we ensured  a roughly equal distribution of work trough code reviews, debugging sessions and meetings for problem solving. 
 
 
 
@@ -68,34 +69,35 @@ a <- tolower(a)
 
 # Exercise 5
 
-# all unique words
+# find all unique words
 unique_words <- unique(a)
-# index of each word's occurence in the text
-index_vector <- match(a, unique_words)
-# word frequencies of unique words
-word_frequencies <- tabulate(index_vector)
-# rank the frequencies
-frequency_ranks <- rank(-word_frequencies, ties.method = "average") # check average treats same no. occurences equally
-# Get indices of top 1000 words
-top_indices <- which(frequency_ranks <= 1000)
-# Extract the top 1000 words
-b <- unique_words[top_indices]
+# index mapping each unique word to it's position in the text
+word_idx <- match(a, unique_words)
+# tabulate function helps us to find the frequency of each unique word in the text
+word_freq <- tabulate(word_idx)
+# rank the words by frequency (the highest frequency is rank 1)
+freq_ranks <- rank(-word_frequencies, ties.method = "average")
+# get indices of top 1000 words
+top_idx <- which(freq_ranks <= 1000)
+# extract the actual top 1000 words
+b <- unique_words[top_idx]
 
 
 # Exercise 6
 
-# index of top words positions in text
-index_b <- match(a, b)
+# index of the top words in the text, returning NA if not found
+b_idx <- match(a, b)
 
-# choose mlag 
-mlag <- 4
+# choose mlag, i.e. how many preceding words we are considering (here current word + 3 preceding)
+mlag <- 4 
 n <- length(a)
 
 # initialise M matrix with dimension (n-mlag) x (mlag+1)
 M <- matrix(nrow=n-mlag, ncol=mlag+1)
-# Put top words index into 1st colm of matrix, then three lags in subsequent colms
+# fill the matrix: current word index in column 1 and then three lags in subsequent columns
 for (m in 1:(mlag+1)){
-  M[,m] <- index_b[m:(n-(mlag+1)+m)]
+  # slide through the text for each lag position
+  M[,m] <- b_idx[m:(n-(mlag+1)+m)]
 }
 
 
