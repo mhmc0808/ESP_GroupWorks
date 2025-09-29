@@ -1,5 +1,13 @@
-# names and university user names of each member of the group
+# GROUP WORK 1
+
+# Jackson Cramer, s2274544
+# Maximillian McCourt, s2145762
+# Natalia Montalvo Cabornero, s1969053
+
 # brief description of what each team member contributed to the project
+
+
+
 
 # Exercise 3
 
@@ -91,7 +99,6 @@ for (m in 1:(mlag+1)){
 
 # Exercise 7
 
-
 # Function that randomly generates the next word of a given key using the text
 next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
   # key - word sequence for which the next word is generated
@@ -104,67 +111,68 @@ next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
   
   # finds the rows of M where the text matches the key
   while (length(match_rows) == 0){
+    # select the number of column entries in M we need to look at based on key length
     mc <- mlag - length(key) +1
     
+    # ii outputs sums of true(=0) and false(=1) based on if word matches key
     ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key))
+    # if a row has sum 0 (ie all true) and finite (no NA), the row matches the key
     match_rows <- which(ii == 0 & is.finite(ii))
-    
+    # now delete all match rows when last entry is NA
+    match_rows <- match_rows[!is.na(M[match_rows,(mlag+1)])]
+    # if there are no matching rows, we initialise key to be one word shorter
+    # than previously until we have matching rows
     key <- key[2:length(key)]
   }
-  
-  # now randomly selects the next word following the key in the text
-  # (if NA, chooses again)
-  while (is.na(next_word)){
-    random_row <- sample(match_rows, 1)
-    next_word <- M[random_row,mlag+1]
-  }
+
+  # chooses random row from match rows (by indexing to avoid sample function issue)
+  random_row <- match_rows[sample(length(match_rows), 1)]
+  # take next word from last entry of random_row
+  next_word <- M[random_row, mlag+1]
   return(next_word)
 }
 
 
-# Ex 8 + 9
+# Exercise 8 
 
 # Function that iteratively produces sentence using next.word function
-sim_shakespeare <- function(key_length, M, M1, top_words){
+sim_shakespeare <- function(key_length, M, M1, p, b){
   
   # Choose first word
-  # first, take top_words where punctuation is not included
-  punctuation <- c(",", ".", ";", ":", "!", "?")
-  tw_no_punct <- top_words[!top_words %in% punctuation]
+  # first, take b where punctuation is not included
+  b_no_p <- b[!b %in% p]
   
   # initialise random starter token
-  random_starter_token <- sample(tw_no_punct, 1)
-  key <- which(top_words == random_starter_token)
-  key_sentence <- key
+  random_starter_token <- sample(b_no_p, 1)
+  key <- which(b == random_starter_token)
+  token_sentence <- key
   
   # find index of period for ending our while loop
-  period_index <- (which(top_words=="."))
-  while (key_sentence[length(key_sentence)] != period_index){
+  period_index <- (which(b=="."))
+  while (token_sentence[length(token_sentence)] != period_index){
     
     # Take next word using next.word function
     next_word <- next.word(key, M, M1)
     # append next_word to sentence
-    key_sentence <- append(key_sentence, next_word)
+    token_sentence <- append(token_sentence, next_word)
     
     # if the sentence is shorter than the desired key_length, just make sentence the key
-    if (length(key_sentence) < key_length){
-      key <- key_sentence
+    if (length(token_sentence) < key_length){
+      key <- token_sentence
     }else{
-      # take last key length no. of words of sentence
-      key <- key_sentence[(length(key_sentence)-key_length+1):length(key_sentence)]
+      # take last key length no. of words of current token sentence
+      key <- token_sentence[(length(token_sentence)-key_length+1):length(token_sentence)]
     }
-    # collapse sentence
-    sentence <- paste(top_words[key_sentence], collapse=" ")
-    
   }
+  # collapse sentence
+  sentence <- paste(b[token_sentence], collapse=" ")
   return(sentence)
 }
 
+# Exercise 9
 
 # Let's simulate Shakespeare
-sim_shakespeare(2, M, M1, b)
-
-
+sim_shakespeare(2, M, M1, p_to_use, b)
 
 
 
