@@ -106,12 +106,18 @@ next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
   # w - vector of mixture weights
   key_length <- length(key)
   mc <- mlag - key_length +1
-  # initialise next_word as NA
+  # initialise next_word and match_rows as NA 
   next_word <- NA
+  match_rows <- c()
   
   # finds the rows of M where the text matches the key
-  ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key))
-  match_rows <- which(ii == 0 & is.finite(ii))
+  while (length(match_rows) == 0){
+    ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key))
+    match_rows <- which(ii == 0 & is.finite(ii))
+    print(match_rows)
+    key <- key[2:length(key)]
+    print(key)
+  }
   print(match_rows)
 
   # now randomly selects the next word following the key in the text
@@ -123,23 +129,24 @@ next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
   return(next_word)
 }
 
+
 # Ex 8 + 9
 
 # Function that iteratively produces sentence using next.word function
-sim_shakespeare <- function(key_length, M, M1, b){
+sim_shakespeare <- function(key_length, M, M1, top_words){
   
   # Choose first word
-  # first, take b where punctuation is not included
+  # first, take top_words where punctuation is not included
   punctuation <- c(",", ".", ";", ":", "!", "?")
-  tw_no_punct <- b[!b %in% punctuation]
+  tw_no_punct <- top_words[!top_words %in% punctuation]
   
   # initialise random starter token
   random_starter_token <- sample(tw_no_punct, 1)
-  key <- which(b == random_starter_token)
+  key <- which(top_words == random_starter_token)
   key_sentence <- key
   
   # find index of period for ending our while loop
-  period_index <- (which(b=="."))
+  period_index <- (which(top_words=="."))
   while (key_sentence[length(key_sentence)] != period_index){
     
     print(key)
@@ -158,7 +165,7 @@ sim_shakespeare <- function(key_length, M, M1, b){
       key <- key_sentence[(length(key_sentence)-key_length+1):length(key_sentence)]
     }
     # collapse sentence
-    sentence <- paste(b[key_sentence], collapse=" ")
+    sentence <- paste(top_words[key_sentence], collapse=" ")
     print(sentence)
   }
   return(sentence)
@@ -166,13 +173,6 @@ sim_shakespeare <- function(key_length, M, M1, b){
 
 
 # Let's simulate Shakespeare
-sim_shakespeare(2, M, M1, b)
+sim_shakespeare(4, M, M1, top_words)
 
 
-
-
-
-# the O's (not mentioned as a special case)
-# ACT I - should we remove this separately for more complete analysis?
-# how do we deal with -? remove, make two words or ignore?
-#
