@@ -4,7 +4,10 @@
 # Maximillian McCourt, s2145762
 # Natalia Montalvo Cabornero, s1969053
 
-# brief description of what each team member contributed to the project
+# List of tasks completed by each group member:
+# Jackson Cramer -
+# Max McCourt -
+# Natalia Montalvo Cabornero - 
 
 
 
@@ -29,10 +32,10 @@ for (left_bracket in stage_start){
   stage_end = grep("]", a[(left_bracket):(left_bracket+100)], fixed=TRUE)
   # find index of first closing bracket after opening bracket
   if (length(stage_end) > 0) {
-  right_bracket <- left_bracket-1+stage_end[1]
-  # append indexes corresponding to stage directions
-  stage_directions <- c(stage_directions, left_bracket:right_bracket)
-}}
+    right_bracket <- left_bracket-1+stage_end[1]
+    # append indexes corresponding to stage directions
+    stage_directions <- c(stage_directions, left_bracket:right_bracket)
+  }}
 # dropped stage directions
 a <- a[-stage_directions]
 
@@ -99,13 +102,15 @@ for (m in 1:(mlag+1)){
 
 # Exercise 7
 
-# Function that randomly generates the next word of a given key using the text
+# function that randomly generates the next word of a given key using the text
 next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
-  # key - word sequence for which the next word is generated
-  # M is matrix M with top word indexed and lags
-  # M1 is the indexing vector of the entire text (index_vector)
-  # w - vector of mixture weights
-  # initialise next_word and match_rows as NA
+  # inputs:
+  #   key - word sequence for which the next word is generated
+  #   M is matrix M with top word indexed and lags
+  #   M1 is the indexing vector of the entire text (index_vector)
+  #   w - vector of mixture weights
+  
+  # initialise next_word and match_rows
   next_word <- NA
   match_rows <- c()
   
@@ -114,18 +119,18 @@ next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
     # select the number of column entries in M we need to look at based on key length
     mc <- mlag - length(key) +1
     
-    # ii outputs sums of true(=0) and false(=1) based on if word matches key
+    # finds all rows of M where text matches key, labelled match_rows
     ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key))
-    # if a row has sum 0 (ie all true) and finite (no NA), the row matches the key
     match_rows <- which(ii == 0 & is.finite(ii))
-    # now delete all match rows when last entry is NA
+    
+    # now delete all match rows when next word after key is NA
     match_rows <- match_rows[!is.na(M[match_rows,(mlag+1)])]
-    # if there are no matching rows, we initialise key to be one word shorter
-    # than previously until we have matching rows
+    
+    # if no matching rows, initialise key to be one word shorter for next loop
     key <- key[2:length(key)]
   }
-
-  # chooses random row from match rows (by indexing to avoid sample function issue)
+  
+  # chooses random row from match rows using sample function (indexing to avoid function issue)
   random_row <- match_rows[sample(length(match_rows), 1)]
   # take next word from last entry of random_row
   next_word <- M[random_row, mlag+1]
@@ -135,32 +140,39 @@ next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
 
 # Exercise 8 
 
-# Function that iteratively produces sentence using next.word function
-sim_shakespeare <- function(key_length, M, M1, p, b){
+# function that iteratively produces sentence using next.word function
+sim.shakespeare <- function(key_length, M, M1, p, b){
+  # inputs:
+  #   key_length - desired key length for word generation
+  #   M is matrix M with top word indexed and lags
+  #   M1 is the indexing vector of the entire text (index_vector)#
+  #   p - punctuation marks
+  #   b - list of ~1000 most frequent words in text
   
-  # Choose first word
-  # first, take b where punctuation is not included
+  # first, set b where punctuation is not included
   b_no_p <- b[!b %in% p]
   
-  # initialise random starter token
+  # use b_no_p to initialise random starter token for sentence
   random_starter_token <- sample(b_no_p, 1)
   key <- which(b == random_starter_token)
+  # initialise sentence as the random word
   token_sentence <- key
   
   # find index of period for ending our while loop
   period_index <- (which(b=="."))
+  # while the last word in the sentence is not a period:
   while (token_sentence[length(token_sentence)] != period_index){
     
     # Take next word using next.word function
     next_word <- next.word(key, M, M1)
-    # append next_word to sentence
+    # append next word to sentence
     token_sentence <- append(token_sentence, next_word)
     
     # if the sentence is shorter than the desired key_length, just make sentence the key
     if (length(token_sentence) < key_length){
       key <- token_sentence
     }else{
-      # take last key length no. of words of current token sentence
+      # else take last key length no. of words of current token sentence
       key <- token_sentence[(length(token_sentence)-key_length+1):length(token_sentence)]
     }
   }
@@ -171,9 +183,6 @@ sim_shakespeare <- function(key_length, M, M1, p, b){
 
 # Exercise 9
 
-# Let's simulate Shakespeare
-sim_shakespeare(2, M, M1, p_to_use, b)
-
-
-
-
+# call on sim.shakespeare function to generate shakespearean sentence
+key_length <- 2
+sim.shakespeare(key_length, M, M1, p_to_use, b)
