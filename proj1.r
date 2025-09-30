@@ -106,86 +106,83 @@ for (m in 1:(mlag+1)){
 next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
   # inputs:
   #   key - word sequence for which the next word is generated
-  #   M - matrix with indices of most frequent words and lags
-  #   M1 - indexing vector of the entire text (index_vector)
+  #   M is matrix M with top word indexed and lags
+  #   M1 is the indexing vector of the entire text (index_vector)
   #   w - vector of mixture weights
   
   # initialise next_word and match_rows
-  next_word <- NA
-  match_rows <- c()
+  match_words <- list()
+  word_weights <- c()
   
-  # finds the rows of M where the text matches the key
-  while (length(match_rows) == 0){
+  # for each length of the key given
+  for (i in 1:length(key)){
+    # i-th key length
+    key_i <- key[i:length(key)]
     # select the number of column entries in M we need to look at based on key length
-    mc <- mlag - length(key) +1
-    
+    mc <- mlag - length(key_i) +1
     # finds all rows of M where text matches key, labelled match_rows
-    ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key))
+    ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key_i))
     match_rows <- which(ii == 0 & is.finite(ii))
-    
     # now delete all match rows when next word after key is NA
     match_rows <- match_rows[!is.na(M[match_rows,(mlag+1)])]
-    
-    # if no matching rows, initialise key to be one word shorter for next loop
-    key <- key[2:length(key)]
+    # all words that follow matching rows
+    match_words[[i]] <- M[match_rows, mlag+1]
+    # find weights of each word for probabilities 
+    # weight indexing adjusted to ensure correct weight is assigned dependent on key length (first weight assigned to longest key length, etc)
+    word_weights <- append(word_weights, w[length(w)-length(key_i)+1]*rep(1, length(match_words[[i]])))
   }
-  
-  # chooses random row from match rows using sample function (indexing to avoid function issue)
-  random_row <- match_rows[sample(length(match_rows), 1)]
-  # take next word from last entry of random_row
-  next_word <- M[random_row, mlag+1]
-  print(b[next_word])
+  # randomly select one of the matching words, with probabilities weighted by word_weights
+  next_word <- sample(unlist(match_words), 1, prob = word_weights)
   return(next_word)
 }
-
-
 
 
 # Exercise 8 
 
 # function that iteratively produces sentence using next.word function
-sim.shakespeare <- function(key_length, M, M1, p, b){
+sim.shakespeare <- function(max_key_len, M, M1, p, b, w=rep(1,ncol(M)-1)){
   # inputs:
   #   key_length - desired key length for word generation
   #   M is matrix M with top word indexed and lags
   #   M1 is the indexing vector of the entire text (index_vector)#
   #   p - punctuation marks
   #   b - list of ~1000 most frequent words in text
+  #   w - weights for key lengths
   
-  # first, set b where punctuation is not included
+  # set b such that punctuation is not included
   b_no_p <- b[!b %in% p]
-  
   # use b_no_p to initialise random starter token for sentence
   random_starter_token <- sample(b_no_p, 1)
   key <- which(b == random_starter_token)
-  # initialise sentence as the random word
+  # initialise token sentence as the random word token
   token_sentence <- key
   
-  # find index of period for ending our while loop
+  # find index of full stop for ending our while loop
   period_index <- (which(b=="."))
-  # while the last word in the sentence is not a period:
+  # while the last token in the token sentence is not the token of full stop:
   while (token_sentence[length(token_sentence)] != period_index){
-    
-    # Take next word using next.word function
-    next_word <- next.word(key, M, M1)
-    # append next word to sentence
+    # take next word using next.word function
+    next_word <- next.word(key, M, M1, w)
+    # append next word token to token sentence
     token_sentence <- append(token_sentence, next_word)
     
-    # if the sentence is shorter than the desired key_length, just make sentence the key
-    if (length(token_sentence) < key_length){
+    # if token sentence is shorter than max key length, just make updated key the current token sentence
+    if (length(token_sentence) < max_key_len){
       key <- token_sentence
     }else{
-      # else take last key length no. of words of current token sentence
-      key <- token_sentence[(length(token_sentence)-key_length+1):length(token_sentence)]
+      # else assign key as last max key length no. of words of current token sentence
+      key <- token_sentence[(length(token_sentence)-max_key_len+1):length(token_sentence)]
     }
   }
-  # collapse sentence
+  # convert token sentence into words, and collapse using space
   sentence <- paste(b[token_sentence], collapse=" ")
   return(sentence)
 }
 
+
 # Exercise 9
 
 # call on sim.shakespeare function to generate shakespearean sentence
-key_length <- 2
-sim.shakespeare(key_length, M, M1, p_to_use, b)
+# choose max key length to be 3, let weights be default (equally weighted)
+max_key_length <- 3
+sim.shakespeare(max_key_length, M, M1, p_to_use, b)
