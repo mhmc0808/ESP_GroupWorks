@@ -76,7 +76,7 @@ word_idx <- match(a, unique_words)
 # tabulate function helps us to find the frequency of each unique word in the text
 word_freq <- tabulate(word_idx)
 # rank the words by frequency (the highest frequency is rank 1)
-freq_ranks <- rank(-word_frequencies, ties.method = "average")
+freq_ranks <- rank(-word_freq, ties.method = "average")
 # get indices of top 1000 words
 top_idx <- which(freq_ranks <= 1000)
 # extract the actual top 1000 words
