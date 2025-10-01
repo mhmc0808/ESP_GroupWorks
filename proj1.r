@@ -8,6 +8,8 @@
 # This code builds a model that uses the complete works of Shakespeare to generate sentences
 # that mimic the structure of Shakespearean writing.
 
+###### fix comments, remove all "exercises" --> explain conceptual meaning of code and purpose
+
 
 # Exercise 3
 
