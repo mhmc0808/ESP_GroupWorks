@@ -86,7 +86,7 @@ b <- unique_words[top_idx]
 # Exercise 6
 
 # index of the most frequent words in the text (assigns NA if not in b)
-M1 <- match(a, b)
+frequent_idx <- match(a, b)
 
 # choose mlag, i.e. how many preceding words we are considering (here current word + 3 preceding)
 mlag <- 4 
@@ -96,7 +96,7 @@ M <- matrix(nrow=n-mlag, ncol=mlag+1)
 # fill the matrix with current word index in column 1, and then four lags in subsequent columns
 for (m in 1:(mlag+1)){
   # shift through the text for each lag position
-  M[,m] <- M1[m:(n-(mlag+1)+m)]
+  M[,m] <- frequent_idx[m:(n-(mlag+1)+m)]
 }
 
 
