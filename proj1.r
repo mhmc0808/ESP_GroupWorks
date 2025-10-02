@@ -6,12 +6,12 @@
 # focused on exercises 5 and 6, and concise, clear code commenting.
 
 # This code builds a model that uses the complete works of Shakespeare to generate sentences
-# that mimic the structure of Shakespearean writing.
+# that mimic the structure of Shakespearean writing. We first preprocessed our data to include
+# only words that are relevant to Shakespearean writing. We then used the ~1000 most common words to build 
+# a function (next.word) that can identify when a given key appears in the text, and uses these samples to randomly select the next word.
+# We then defined a random starting word, and iteratively produced the next word using the next.word function
+# to create sentences that mimic Shakespearean writing.
 
-###### fix comments, remove all "exercises" --> explain conceptual meaning of code and purpose
-
-
-# Exercise 3
 
 # set working directory and read shakespeare text into R environment
 # setwd("GW1")
@@ -19,9 +19,7 @@ a <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
           fileEncoding="UTF-8")
 
 
-# Exercise 4
-
-# to remove stage directions (words located between square brackets), first locate all indices of opening brackets
+# we first remove stage directions (words located between square brackets) by locating all indices of opening brackets
 stage_start = grep("[",a,fixed=TRUE)
 # initialise empty vector to store indices of stage directions
 stage_dir <- c()
@@ -38,18 +36,17 @@ for (left_bracket in stage_start){
 # remove all stage directions
 a <- a[-stage_dir]
 
-# remove character names (fully upper case) and arabic numerals, but do not remove I, A, or O
+# remove character names (fully upper case) and arabic numerals, but do not remove exceptions I, A, or O
 a <- a[which(a == "I" | a == "A" | a == "O" | a != toupper(a))]
 
 # remove _ and - from words by replacing them with empty strings
 a <- gsub("[_-]", "", a)
 
-# function that separates punctuation marks from words they are attached to
+# to ensure punctuation is considered as words, write a function that separates punctuation marks from words they are attached to
 split_punct <- function(w, p) {
   # inputs:
   #   w - word vector
   #   p - punctuation marks vector
-  
   # for each punctuation p, place a space between the punctuation and connected word
   for (punct in p) {
     w <- gsub(punct, paste(" ", punct, sep = ""), w, fixed=TRUE)
@@ -68,14 +65,12 @@ a <- split_punct(a, p_to_use)
 # convert word vector a to lower case
 a <- tolower(a)
 
-
-# Exercise 5
-
-# find all unique words
+# we now find the frequency of the ~1000 most common unique words in the text to use them to generate the sentences 
+# first, find all unique words
 unique_words <- unique(a)
-# index mapping each unique word to its position in the text
+# index map each unique word to its position in the text
 word_idx <- match(a, unique_words)
-# tabulate function helps us to find the frequency of each unique word in the text
+# find the frequency of each unique word in the text
 word_freq <- tabulate(word_idx)
 # rank the words by frequency, the highest frequency being rank 1 (assigns words with same frequency the same average rank)
 freq_ranks <- rank(-word_freq, ties.method = "average")
@@ -84,78 +79,81 @@ top_idx <- which(freq_ranks <= 1000)
 # extract ~1000 most-frequent unique words
 b <- unique_words[top_idx]
 
-
-# Exercise 6
-
-# index of the most frequent words in the text (assigns NA if not in b)
+# we next make a matrix (M) of common word token sequences
+# find indices of the most frequent words in the text (assigns NA if not in b)
 frequent_idx <- match(a, b)
-
-# choose mlag, i.e. how many preceding words we are considering (here current word + 3 preceding)
+# create vector of word tokens for whole text
+M1 <- frequent_idx[!is.na(frequent_idx)]
+# choose mlag, i.e. how many preceding words we are considering
 mlag <- 4 
 n <- length(a)
-# To construct M matrix of common word token sequences, initialise empty matrix with dimension (n-mlag) x (mlag+1)
+# to construct M, initialise empty matrix with dimensions (n-mlag) x (mlag+1)
 M <- matrix(nrow=n-mlag, ncol=mlag+1)
-# fill the matrix with current word index in column 1, and then four lags in subsequent columns
+# fill the matrix with current word index in column 1, and then mlag lags in subsequent columns
 for (m in 1:(mlag+1)){
   # shift through the text for each lag position
   M[,m] <- frequent_idx[m:(n-(mlag+1)+m)]
 }
 
 
-# Exercise 7
-
-# function that randomly generates the next word of a given key using the text
+# function that uses M to randomly generate the next word of a given key using the text
 next.word <- function(key, M, M1, w=rep(1,ncol(M)-1)){
   # inputs:
   #   key - word sequence for which the next word is generated
-  #   M is matrix M with top word indexed and lags
-  #   M1 is the indexing vector of the entire text (index_vector)
+  #   M - matrix M with top word indexed and lags
+  #   M1 - vector of word tokens for whole text
   #   w - vector of mixture weights
   
-  # initialise next_word and match_rows
   match_words <- list()
   word_weights <- c()
+  # handle situations when the key length is larger than mlag by selecting last mlag words of key
+  if (length(key) > mlag) {
+    key <- key[(length(key)-mlag+1):length(key)]
+  }
   
-  # for each length of the key given
+  # we find matching rows of M for each length of given key
   for (i in 1:length(key)){
-    # i-th key length
+    # key length for the i-th loop
     key_i <- key[i:length(key)]
     # select the number of column entries in M we need to look at based on key length
     mc <- mlag - length(key_i) +1
     # finds all rows of M where text matches key, labelled match_rows
     ii <- colSums(!(t(M[,mc:mlag,drop=FALSE])==key_i))
     match_rows <- which(ii == 0 & is.finite(ii))
-    # now delete all match rows when next word after key is NA
+    # delete all match rows when next word after key is NA
     match_rows <- match_rows[!is.na(M[match_rows,(mlag+1)])]
-    # all words that follow matching rows
+    # store all following common words of matching rows
     match_words[[i]] <- M[match_rows, mlag+1]
-    # find weights of each word for probabilities 
+    # find weights of each word to be used as probabilities
     # weight indexing adjusted to ensure correct weight is assigned dependent on key length (first weight assigned to longest key length, etc)
-    word_weights <- append(word_weights, w[length(w)-length(key_i)+1]*rep(1, length(match_words[[i]])))
+    word_weights <- c(word_weights, w[length(w)-length(key_i)+1]*rep(1, length(match_words[[i]])))
   }
-  # randomly select one of the matching words, with probabilities weighted by word_weights
-  next_word <- sample(unlist(match_words), 1, prob = word_weights)
+  # if there are matching words, randomly select one of the matching words, with probabilities weighted by word_weights
+  if (length(match_words) > 0) {
+    next_word <- sample(unlist(match_words), 1, prob = word_weights)
+  } else {
+    # if there are no matching words, assign next word at random from M1
+    next_word <- sample(M1, 1)
+  }
   return(next_word)
 }
 
 
-# Exercise 8 
-
 # function that iteratively produces sentence using next.word function
 sim.shakespeare <- function(max_key_len, M, M1, p, b, w=rep(1,ncol(M)-1)){
   # inputs:
-  #   key_length - desired key length for word generation
-  #   M is matrix M with top word indexed and lags
-  #   M1 is the indexing vector of the entire text (index_vector)#
+  #   max_key_len - desired key length for word generation
+  #   M - matrix M with top word indexed and lags
+  #   M1 - vector of word tokens for whole text
   #   p - punctuation marks
-  #   b - list of ~1000 most frequent words in text
+  #   b - vector of ~1000 most frequent words in text
   #   w - weights for key lengths
   
   # set b such that punctuation is not included
   b_no_p <- b[!b %in% p]
-  # use b_no_p to initialise random starter token for sentence
-  random_starter_token <- sample(b_no_p, 1)
-  key <- which(b == random_starter_token)
+  # use b_no_p to initialise random starter word for sentence and assign corresponding token as key
+  random_starter_word <- sample(b_no_p, 1)
+  key <- which(b_no_p == random_starter_word)
   # initialise token sentence as the random word token
   token_sentence <- key
   
@@ -167,8 +165,8 @@ sim.shakespeare <- function(max_key_len, M, M1, p, b, w=rep(1,ncol(M)-1)){
     next_word <- next.word(key, M, M1, w)
     # append next word token to token sentence
     token_sentence <- append(token_sentence, next_word)
-    
-    # if token sentence is shorter than max key length, just make updated key the current token sentence
+
+    # if token sentence is shorter than max key length, make updated key the current token sentence
     if (length(token_sentence) < max_key_len){
       key <- token_sentence
     }else{
@@ -182,9 +180,8 @@ sim.shakespeare <- function(max_key_len, M, M1, p, b, w=rep(1,ncol(M)-1)){
 }
 
 
-# Exercise 9
-
 # call on sim.shakespeare function to generate shakespearean sentence
 # choose max key length to be 3, let weights be default (equally weighted)
 max_key_length <- 3
 sim.shakespeare(max_key_length, M, M1, p_to_use, b)
+
