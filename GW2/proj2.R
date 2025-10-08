@@ -1,4 +1,4 @@
-
+# Jackson Cramer (s2274544), Maximillian McCourt (s2145762), Natalia Montalvo Cabornero (s1969053)
 
 # Exercise 1
 n <- 1000
@@ -7,8 +7,6 @@ h_max <- 5
 # works as expected, truncating may be inefficient
 h <- rep(1:n, sample(1:h_max, n, replace=TRUE))[1:n] |> sample()
 h
-
-
 
 
 # Exercise 2
@@ -41,38 +39,53 @@ get.net_loop <- function(beta,h,nc=15){
     return(contacts)
 }
 
-
-
-contacts <- get.net_loop(beta,h,nc)
-print(contacts)
-
+alink <- get.net_loop(beta,h,nc)
+print(alink)
 
 # can also use rbinom(1,1, prob=prob_beta_ij) instead of sampling
 
-
-
+# Exercise 3
 
 # SEIR model 
 nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt = 100,pinf = .005){
   ## SEIR stochastic simulation model.
-  ## n = population size; ni = initially infective; nt = number of days
-  ## gamma = daily prob E -> I; delta = daily prob I -> R;
-  ## bmu = mean beta; bsc = var(beta) = bmu * bsc
+  ## beta = transmission parameter
+  ## h = vector indicating which household each person belongs to
+  ## alink = list defining regular contacts of each person
+  ## gamma = daily prob E -> I
+  ## delta = daily prob I -> R
+  ## nc = average number of contacts per person
+  ## nt = number of days
+  ## pinf = proportion of initial population to randomly start in state I
   
-  x <- rep(0,n) ## initialize to susceptible state
-  beta <- rgamma(n,shape=bmu/bsc,scale=bsc) ## individual infection rates
-  x[1:ni] <- 2 ## create some infectives
+  x <- rep(0,n) ## initialize to susceptible state (= 0)
+  
+  ni <- max(1, round(pinf*n))   # at least one infected
+  initial_infected <- sample(1:n, ni)  # randomly choosing by prob the first I
+  x[initial_infected] <- 2 
+  
   S <- E <- I <- R <- rep(0,nt) ## set up storage for pop in each state
-  S[1] <- n-ni;I[1] <- ni ## initialize
+  ## initialize
+  S[1] <- n-ni
+  I[1] <- ni 
+  
   for (i in 2:nt) { ## loop over days
     u <- runif(n) ## uniform random deviates
+    
     x[x==2&u<delta] <- 3 ## I -> R with prob delta
     x[x==1&u<gamma] <- 2 ## E -> I with prob gamma
-    x[x==0&u<beta*I[i-1]] <- 1 ## S -> E with prob beta*I[i-1]
-    S[i] <- sum(x==0); E[i] <- sum(x==1)
-    I[i] <- sum(x==2); R[i] <- sum(x==3)
-  }
-  list(S=S,E=E,I=I,R=R,beta=beta)
+    
+    infected_id <- which(x==2)
+    #####  S -> E
+    ## x[x==0&u<beta*I[i-1]/n] <- 1 ## S -> E with prob beta*I[i-1]/n
+    }
+    
+    S[i] <- sum(x==0)
+    E[i] <- sum(x==1)
+    I[i] <- sum(x==2)
+    R[i] <- sum(x==3)
+
+  return(list(S=S,E=E,I=I,R=R,beta=beta))
 } 
 
 
