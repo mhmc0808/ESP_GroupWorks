@@ -1,5 +1,3 @@
-print("Natalia likes men kissing")
-
 
 
 # Exercise 1
@@ -33,7 +31,7 @@ get.net_loop <- function(beta,h,nc=15){
                 # find probability of contact between person i and j
                 prob_beta_ij <- (nc*beta[i]*beta[j])/(mean(beta)**2 * (n-1))
                 # if a contact occurs, add each person to the others contact list
-                if (rbinom(1, 1, prob_beta_ij) == 1){
+                if (sample(c(0,1), size=1, prob=c(1-prob_beta_ij, prob_beta_ij)) == 1){
                     contacts[[i]] <- c(contacts[[i]], j)
                     contacts[[j]] <- c(contacts[[j]], i)
                 }
@@ -42,3 +40,11 @@ get.net_loop <- function(beta,h,nc=15){
     }
     return(contacts)
 }
+
+
+
+contacts <- get.net_loop(beta,h,nc)
+print(contacts)
+
+
+# can also use rbinom(1,1, prob=prob_beta_ij) instead of sampling
