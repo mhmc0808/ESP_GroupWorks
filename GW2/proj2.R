@@ -42,6 +42,33 @@ get.net_loop <- function(beta,h,nc=15){
 alink <- get.net_loop(beta,h,nc)
 print(alink)
 
+
+# One looped version of get.net
+get.net_loop <- function(beta,h,nc=15){
+  n_beta <- length(beta) # !! notice how I am not referring to global variable n (like was done before)
+  # initialise empty contact list with n entries
+  contacts <- vector("list", n_beta)
+  pairs <- combn(n_beta, 2)  # generates all possible combinations of (i, j) pairs
+  # Loop through each pair of individuals
+  for (k in 1:ncol(pairs)){
+    i <- pairs[1, k]
+    j <- pairs[2, k]
+    # if they are not in the same household
+    if (h[i] != h[j]){
+      prob_beta_ij <- (nc * beta[i] * beta[j]) / (mean(beta)^2 * (n_beta - 1))
+      if (sample(c(0,1), size=1, prob=c(1 - prob_beta_ij, prob_beta_ij)) == 1){
+        contacts[[i]] <- c(contacts[[i]], j)
+        contacts[[j]] <- c(contacts[[j]], i)
+      }
+    }
+  }
+  
+  return(contacts)
+}
+
+
+
+
 # can also use rbinom(1,1, prob=prob_beta_ij) instead of sampling
 
 # Exercise 3 - NATALIA'S
