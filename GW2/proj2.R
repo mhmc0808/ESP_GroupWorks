@@ -49,7 +49,7 @@ get.net_loop <- function(beta,h,nc=15){
   # initialise empty contact list with n entries
   contacts <- vector("list", n_beta)
   pairs <- combn(n_beta, 2)  # generates all possible combinations of (i, j) pairs
-  # Loop through each pair of individuals
+  # Loop through each pair of combinations
   for (k in 1:ncol(pairs)){
     i <- pairs[1, k]
     j <- pairs[2, k]
