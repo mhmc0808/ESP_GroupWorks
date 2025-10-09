@@ -44,7 +44,7 @@ print(alink)
 
 # can also use rbinom(1,1, prob=prob_beta_ij) instead of sampling
 
-# Exercise 3
+# Exercise 3 - NATALIA'S
 
 # SEIR model 
 nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt = 100,pinf = .005){
@@ -90,3 +90,53 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt =
 
 
 
+
+# Ex 3 - MAX'S
+
+# Function to simulate infection spread
+
+nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt = 100,pinf = .005){
+    # Our SEIR, t data
+    # Using S=0, E=1, I=2, R=3 structure
+    n <- length(beta)
+    # defining alphas
+    alpha_h <- alpha[1]
+    alpha_c <- alpha[2]
+    alpha_r <- alpha[3]
+    # total population
+    x <- rep(0, n)
+    # initialise infected individuals at random
+    x[sample(1:n, round(n*pinf))] <- 2
+    # initialise SEIR counts
+    S <- E <- I <- R <- rep(0,nt)
+    S[1] <- sum(x == 0)
+    I[1] <- sum(x == 2)
+    # loop over days
+    for (t in 2:nt){
+        u <- runif(n)
+        x[x==2 & u<delta] <- 3 # infected to recovered
+        x[x==1 & u<gamma] <- 2 # exposed to infected
+        # susceptible to exposed
+        current_I <- which(x==2)
+        for (i in current_I){
+            # random mixing daily probability
+            r_prob <- (alpha_r*nc*beta[i]*beta)/(mean(beta)**2 * (n - 1))
+            x[x==0 & u<r_prob] <- 1
+            # household mixing daily probability 
+            # if x is susceptible, and in same household as i, and random number less than alpha_h probability
+            household <- which(h==h[i] & x==0)
+            x[household[u[household] < alpha_h]] <- 1
+            # contacts mixing daily probability
+            # if x is susceptible, and in contact list of i, and random number less than alpha_c probability
+            contacts_i <- alink[[i]]
+            x[contacts_i[x[contacts_i] == 0 & u[contacts_i] < alpha_c]] <- 1
+            # count of SEIR population
+        }
+        S[t] <- sum(x==0); E[t] <- sum(x==1); I[t] <- sum(x==2); R[t] <- sum(x==3)
+    }
+    return(list(S=S,E=E,I=I,R=R,t=1:nt))
+}
+
+
+system.time(epi <- nseir(beta,h,alink))
+# function operates correctly, runs in about 8.5 seconds with n=10,000.
