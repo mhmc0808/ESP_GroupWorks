@@ -174,12 +174,11 @@ system.time(epi <- nseir(beta,h,alink))
 
 plot_dynamics = function(pop_states){
   # plot number of people in each group over time
-  par(mfcol=c(2,3),mar=c(4,4,1,1))
-  plot(pop_states$S,ylim=c(0,max(epi$S)),xlab="day", ylab="N") # S black
+  plot(pop_states$S,ylim=c(0,max(epi$S)),xlab="day", ylab="N", main="Simulated Population States over Time", cex.main=1) # S black
   points(pop_states$E, col=4)
   points(pop_states$I, col=2)
   points(pop_states$R, col=3)
-  
 }
 
 plot_dynamics(epi)
+
