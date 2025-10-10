@@ -169,16 +169,39 @@ system.time(epi <- nseir(beta,h,alink))
 # function operates correctly, runs in about 8.5 seconds with n=10,000.
 
 
+# Exercise 4
 
-# 4.
-
-plot_dynamics = function(pop_states){
+plot_dynamics = function(pop_states, title=""){
   # plot number of people in each group over time
-  plot(pop_states$S,ylim=c(0,max(epi$S)),xlab="day", ylab="N", main="Simulated Population States over Time", cex.main=1) # S black
+  plot(pop_states$S,ylim=c(0,max(epi$S)),xlab="day", ylab="N", main=title) # S black
   points(pop_states$E, col=4)
   points(pop_states$I, col=2)
   points(pop_states$R, col=3)
 }
 
-plot_dynamics(epi)
+
+# Exercise 5
+
+# default parameters
+def_params = nseir(beta,h,alink)
+
+# remove household and regular network structure
+random_mixing = nseir(beta, h, alink, alpha=c(0,0,.04))
+
+# beta vector set to contain average of previous veta for every element
+avg_beta = 1:length(beta)
+avg_beta[1:length(avg_beta)] = mean(beta)
+constant_beta = nseir(avg_beta,h,alink)
+
+# constant beta and random mixing
+random_mix_constant_beta = nseir(avg_beta,h,alink, alpha=c(0,0,.04))
+
+# plot all four scenarios side by side
+par(mfcol=c(1,4))
+titles <- c("Default Parameters", "Random Mixing", "Constant Beta", "Random Mix & Constant Beta")
+plots <- list(def_params, random_mixing, constant_beta, random_mix_constant_beta)
+for (i in seq_along(plots)) {
+  plot_dynamics(plots[[i]], titles[i])
+}
+
 
