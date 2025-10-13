@@ -1,5 +1,5 @@
 -We should make Ex3 func more efficient by indexing the susceptibles and doing calculations only using them.
 -We need to check that u should be randomly initialised both for the start of each day and also for each infected person.
--Does Jackson like kissing men??
+-If we keep both u, rename them so tell them apart
 -How efficient should Q2 be? And ask about the double loop again.
 -Do our plots look pretty :)?
