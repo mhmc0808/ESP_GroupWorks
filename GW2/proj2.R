@@ -210,7 +210,7 @@ system.time(epi <- nseir(beta,h,alink))
 plot_dynamics = function(pop_states, title=""){
   # plot number of people in each group over time
   ymax <- max(c(pop_states$S, pop_states$E, pop_states$I, pop_states$R))
-  plot(pop_states$S,ylim=c(0,ymax), type="l", lwd=3, xlab="day", ylab="N", main=title) # S black
+  plot(pop_states$S,ylim=c(0,ymax), type="l", lwd=3, xlab="Time (days)", ylab="Population", main=title) # S black
   lines(pop_states$E, col=4, lwd=3) # E blue
   lines(pop_states$I, col=2, lwd=3) # I red
   lines(pop_states$R, col=3, lwd=3) # R green
@@ -222,6 +222,7 @@ plot_dynamics = function(pop_states, title=""){
          cex=0.7, bty="n")
 }
 
+
 # Exercise 5
 
 # default parameters
@@ -230,7 +231,8 @@ def_params = nseir(beta,h,alink)
 # remove household and regular network structure
 random_mixing = nseir(beta, h, alink, alpha=c(0,0,.04))
 
-# beta vector set to contain average of previous veta for every element
+
+# beta vector set to contain average of previous beta for every element
 avg_beta = 1:length(beta)
 avg_beta[1:length(avg_beta)] = mean(beta)
 constant_beta = nseir(avg_beta,h,alink)
@@ -246,5 +248,7 @@ for (i in seq_along(plots)) {
   plot_dynamics(plots[[i]], titles[i])
 }
 
+
+# Comment on plots
 
 
