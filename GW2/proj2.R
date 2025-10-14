@@ -159,7 +159,7 @@ plot_dynamics = function(pop_states, title=""){
   lines(pop_states$E, col=4, lwd=3) # E blue
   lines(pop_states$I, col=2, lwd=3) # I red
   lines(pop_states$R, col=3, lwd=3) # R green
-  legend(x=length(pop_states$R)/2, y=ymax/1.5, # length(pop_states$t)
+  legend(x=length(pop_states$R)/2, y=ymax/1.5,
          legend=c("Susceptible", "Exposed", "Infected", "Recovered"),
          col=c("black", "blue", "red", "green"),
          lty=NA, lwd=2,
