@@ -209,12 +209,18 @@ system.time(epi <- nseir(beta,h,alink))
 
 plot_dynamics = function(pop_states, title=""){
   # plot number of people in each group over time
-  plot(pop_states$S,ylim=c(0,max(epi$S)),xlab="day", ylab="N", main=title) # S black
-  points(pop_states$E, col=4)
-  points(pop_states$I, col=2)
-  points(pop_states$R, col=3)
+  ymax <- max(c(pop_states$S, pop_states$E, pop_states$I, pop_states$R))
+  plot(pop_states$S,ylim=c(0,ymax), type="l", lwd=3, xlab="day", ylab="N", main=title) # S black
+  lines(pop_states$E, col=4, lwd=3) # E blue
+  lines(pop_states$I, col=2, lwd=3) # I red
+  lines(pop_states$R, col=3, lwd=3) # R green
+  legend(x=length(pop_states$R)/2, y=ymax/1.5, # length(pop_states$t)
+         legend=c("Susceptible", "Exposed", "Infected", "Recovered"),
+         col=c("black", "blue", "red", "green"),
+         lty=NA, lwd=2,
+         pch=16,
+         cex=0.7, bty="n")
 }
-
 
 # Exercise 5
 
@@ -233,11 +239,12 @@ constant_beta = nseir(avg_beta,h,alink)
 random_mix_constant_beta = nseir(avg_beta,h,alink, alpha=c(0,0,.04))
 
 # plot all four scenarios side by side
-par(mfcol=c(1,4))
+par(mfcol=c(2,2), mar=c(4,4,2,1))
 titles <- c("Default Parameters", "Random Mixing", "Constant Beta", "Random Mix & Constant Beta")
 plots <- list(def_params, random_mixing, constant_beta, random_mix_constant_beta)
 for (i in seq_along(plots)) {
   plot_dynamics(plots[[i]], titles[i])
 }
+
 
 
