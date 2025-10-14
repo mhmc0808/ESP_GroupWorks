@@ -15,91 +15,36 @@ beta <- runif(n, 0, 1) # assign random sociability parameters
 nc <- 15 # average no. contacts per person
 
 
-# WE NEED TO ADJUST THIS FUNCTION TO MAKE IT SINGLE-LOOP
-
-# Looped version of get.net
-get.net_loop <- function(beta,h,nc=15){
-    # initialise empty contact list with n entries
-    contacts <- vector("list", n)
-    # Loop through each pair of individuals
-    for (i in 1:(n-1)){
-        for (j in (i+1):n){
-            # if they are not in the same household
-            if (h[i] != h[j]){
-                # find probability of contact between person i and j
-                prob_beta_ij <- (nc*beta[i]*beta[j])/(mean(beta)**2 * (n-1))
-                # if a contact occurs, add each person to the others contact list
-                if (sample(c(0,1), size=1, prob=c(1-prob_beta_ij, prob_beta_ij)) == 1){
-                    contacts[[i]] <- c(contacts[[i]], j)
-                    contacts[[j]] <- c(contacts[[j]], i)
-                }
-            }
-        }
-    }
-    return(contacts)
-}
-
-alink <- get.net_loop(beta,h,nc)
-print(alink)
-
-
 # One looped version of get.net
-get.net_loop <- function(beta,h,nc=15){
-  n_beta <- length(beta) # !! notice how I am not referring to global variable n (like was done before)
+get.net <- function(beta,h,nc=15){
+  # establish population using length of beta
+  n <- length(beta) 
   # initialise empty contact list with n entries
   contacts <- vector("list", n_beta)
-  pairs <- combn(n_beta, 2)  # generates all possible combinations of (i, j) pairs
-  # Loop through each pair of combinations
-  for (k in 1:ncol(pairs)){
-    i <- pairs[1, k]
-    j <- pairs[2, k]
-    # if they are not in the same household
-    if (h[i] != h[j]){
-      prob_beta_ij <- (nc * beta[i] * beta[j]) / (mean(beta)^2 * (n_beta - 1))
-      if (sample(c(0,1), size=1, prob=c(1 - prob_beta_ij, prob_beta_ij)) == 1){
-        contacts[[i]] <- c(contacts[[i]], j)
-        contacts[[j]] <- c(contacts[[j]], i)
-      }
+  # record probability coefficient for efficiency
+  coeff <- nc/(mean(beta)**2 * (n_beta - 1))
+  for (i in 1:(n_beta-1)){
+    # establish all people in future possible links that are not household members to person i
+    non_h <- h[(i+1):n_beta]!=h[i]
+    # initialise all possible links for person i
+    poss_links <- c((i+1):n_beta)[non_h]
+    # extract corresponding betas
+    beta_poss_links <- beta[poss_links]
+    # finds probabilities of contact between person i and possible future links
+    prob_betas <- coeff*beta[i]*beta_poss_links
+    # generate links based on probabilities
+    link_idx <- rbinom(length(prob_betas), 1, prob_betas) == 1
+    links <- poss_links[link_idx]
+    contacts[[i]] <- c(contacts[[i]], links)
+    for (j in links) {
+      contacts[[j]] <- c(contacts[[j]], i)
     }
   }
-  
   return(contacts)
 }
 
+system.time(alink <- get.net(beta,h,nc))
 
-
-
-# Vectorised version of get.net_vec
-get.net_vec <- function(beta,h,nc=15){
-    # lets collect all unique combinations of people i and j
-    pairs <- t(combn(n, 2))
-    # find all combinations where person i lives in the same household as person j
-    h_matching <- h[pairs[,1]] == h[pairs[,2]]
-    # we then remove all combinations where person i lives in the same household as person j
-    pairs <- pairs[!h_matching,, drop=FALSE]
-    # all probabilities of contact between person i and j
-    probs_ij <- (nc*beta[pairs[,1]]*beta[pairs[,2]])/(mean(beta)**2 * (n-1))
-    # now use probs_ij to generate all contacts between people 1 to n
-    links <- rbinom(length(probs_ij), 1, probs_ij) == 1
-    # we keep only the pairs that have a link from links
-    pairs <- pairs[links,, drop=FALSE]
-    # initialise empty contact list with n entries
-    contacts <- vector("list", n)
-    
-    # Populate contact list with links for each person from 1 to n
-    for (k in seq_len(nrow(pairs))) {
-        contacts[[pairs[k, 1]]] <- c(contacts[[pairs[k, 1]]], pairs[k, 2])
-        contacts[[pairs[k, 2]]] <- c(contacts[[pairs[k, 2]]], pairs[k, 1])
-    }
-    return(contacts)
-}
-
-
-
-
-
-
-# can also use rbinom(1,1, prob=prob_beta_ij) instead of sampling
 
 # SEIR Model
 
