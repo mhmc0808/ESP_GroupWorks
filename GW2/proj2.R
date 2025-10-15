@@ -45,6 +45,7 @@ get.net <- function(beta,h,nc=15){
 
 
 # SEIR Model
+
 nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt = 100,pinf = .005){
   # Our SEIR, t data
   # Using S=0, E=1, I=2, R=3 structure
@@ -62,30 +63,31 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt =
   S[1] <- sum(x == 0)
   I[1] <- sum(x == 2)
   # initialize denominator for probability calculation
-  mean_beta <- mean(beta)
-  denom <- mean_beta^2 * (n-1)
+  coeff <- (alpha_r*nc)/(mean(beta)^2 * (n-1))
   # loop over days
   for (t in 2:nt){
+    # generate n random deviates for mutually exclusive daily transitions
     u <- runif(n)
     x[x==2 & u<delta] <- 3 # infected to recovered
     x[x==1 & u<gamma] <- 2 # exposed to infected
-    susceptible <- which(x==0) # initialize those susceptible to infection
     # susceptible to exposed
     current_I <- which(x==2)
     for (i in current_I){
-      u_hc <- runif(n)
       # if x is susceptible, and in same household as i, and random number less than alpha_h probability
       household <- which(h==h[i] & x==0)
-      x[household[u_hc[household] < alpha_h]] <- 1
+      # uses runif of length of household to select which household members become exposed
+      x[household[runif(length(household)) < alpha_h]] <- 1
       # contacts mixing daily probability
       # if x is susceptible, and in contact list of i, and random number less than alpha_c probability
+      # finds all susceptible contacts of infected person i
       contacts_i <- alink[[i]]
-      x[contacts_i[x[contacts_i] == 0 & u_hc[contacts_i] < alpha_c]] <- 1
+      sus_contacts <- contacts_i[x[contacts_i]==0]
+      # uses runif of length of susceptible contacts to select which susceptible contacts become exposed
+      x[sus_contacts[runif(sus_contacts) < alpha_c]] <- 1
       # random mixing daily probability
-      u_rm <- runif(n)
-      r_prob <- alpha_r*nc*beta[i]*beta[susceptible]/denom
-      exposed_rm <- susceptible[u_rm[susceptible] < r_prob]
-      x[exposed_rm] <- 1
+      susceptible <- which(x==0) # initialize those susceptible to infection
+      r_prob <- coeff*beta[i]*beta[susceptible]
+      x[susceptible[runif(length(susceptible)) < r_prob]] <- 1
       # count of SEIR population
     }
     S[t] <- sum(x==0)
@@ -96,10 +98,8 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt =
   return(list(S=S,E=E,I=I,R=R,t=1:nt))
 }
 
-
 #system.time(epi <- nseir(beta,h,alink))
 # function operates correctly, runs in about 8.5 seconds with n=10,000.
-
 
 # Exercise 4
 
