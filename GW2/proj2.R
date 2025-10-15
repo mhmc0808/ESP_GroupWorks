@@ -1,5 +1,10 @@
 # Jackson Cramer (s2274544), Maximillian McCourt (s2145762), Natalia Montalvo Cabornero (s1969053)
 
+# As a three, we collaborated on the development and optimisation of each exercise. While we divided forces, 
+# we ensured  a roughly equal distribution of work through code reviews, debugging sessions and meetings for problem solving. 
+# Jackson focused on the plotting in questions 4 and 5 as well as building vector h in question 1. Max focused on the nseir function in queston 3, and Natalia
+# focused on the get.net function in question 2, alongside writing concise, clear code commenting.
+
 # Exercise 1
 n <- 1000
 h_max <- 5
