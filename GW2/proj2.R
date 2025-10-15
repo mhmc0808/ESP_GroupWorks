@@ -45,7 +45,6 @@ get.net <- function(beta,h,nc=15){
 
 
 # SEIR Model
-
 nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt = 100,pinf = .005){
   # Our SEIR, t data
   # Using S=0, E=1, I=2, R=3 structure
@@ -85,8 +84,8 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt =
       # random mixing daily probability
       u_rm <- runif(n)
       r_prob <- alpha_r*nc*beta[i]*beta[susceptible]/denom
-      infected <- susceptible[u_rm[susceptible] < r_prob]
-      x[infected] <- 1
+      exposed_rm <- susceptible[u_rm[susceptible] < r_prob]
+      x[exposed_rm] <- 1
       # count of SEIR population
     }
     S[t] <- sum(x==0)
@@ -96,7 +95,6 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt =
   }
   return(list(S=S,E=E,I=I,R=R,t=1:nt))
 }
-
 
 
 #system.time(epi <- nseir(beta,h,alink))
