@@ -4,30 +4,23 @@
 n <- 1000
 h_max <- 5
 
-# works as expected, truncating may be inefficient
 h <- rep(1:n, sample(1:h_max, n, replace=TRUE))[1:n] |> sample()
-h
-
 
 # Exercise 2
-
-beta <- runif(n, 0, 1) # assign random sociability parameters
-nc <- 15 # average no. contacts per person
-
 
 # One looped version of get.net
 get.net <- function(beta,h,nc=15){
   # establish population using length of beta
   n <- length(beta) 
   # initialise empty contact list with n entries
-  contacts <- vector("list", n_beta)
+  contacts <- vector("list", n)
   # record probability coefficient for efficiency
-  coeff <- nc/(mean(beta)**2 * (n_beta - 1))
-  for (i in 1:(n_beta-1)){
+  coeff <- nc/(mean(beta)**2 * (n - 1))
+  for (i in 1:(n-1)){
     # establish all people in future possible links that are not household members to person i
-    non_h <- h[(i+1):n_beta]!=h[i]
+    non_h <- h[(i+1):n]!=h[i] # ??!! how does this handle when there are non-household members earlier than i
     # initialise all possible links for person i
-    poss_links <- c((i+1):n_beta)[non_h]
+    poss_links <- c((i+1):n)[non_h]
     # extract corresponding betas
     beta_poss_links <- beta[poss_links]
     # finds probabilities of contact between person i and possible future links
@@ -43,7 +36,7 @@ get.net <- function(beta,h,nc=15){
   return(contacts)
 }
 
-system.time(alink <- get.net(beta,h,nc))
+#system.time(alink <- get.net(beta,h,nc))
 
 
 # SEIR Model
@@ -142,11 +135,7 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt =
 
 
 
-
-
-
-
-system.time(epi <- nseir(beta,h,alink))
+#system.time(epi <- nseir(beta,h,alink))
 # function operates correctly, runs in about 8.5 seconds with n=10,000.
 
 
@@ -169,6 +158,9 @@ plot_dynamics = function(pop_states, title=""){
 
 
 # Exercise 5
+
+beta <- runif(n, 0, 1) # assign random sociability parameters
+alink <- get.net(beta,h,nc)
 
 # default parameters
 def_params = nseir(beta,h,alink)
