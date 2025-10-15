@@ -141,14 +141,19 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt =
 
 # Exercise 4
 
+# build function to plot population in each S.E.I.R group over time
 plot_dynamics = function(pop_states, title=""){
-  # plot number of people in each group over time
+  # pop_states - population state counts as produced by nseir
+  # title - plot title
+  # calculate highest population among groups for consistent axis scaling
   ymax <- max(c(pop_states$S, pop_states$E, pop_states$I, pop_states$R))
+  # plot each S.E.I.R group as lines, differentiated by color
   plot(pop_states$S,ylim=c(0,ymax), type="l", lwd=3, xlab="Time (days)", ylab="Population", main=title) # S black
   lines(pop_states$E, col=4, lwd=3) # E blue
   lines(pop_states$I, col=2, lwd=3) # I red
   lines(pop_states$R, col=3, lwd=3) # R green
-  legend(x=length(pop_states$R)/2, y=ymax/1.5,
+  # include legend to recognize meaning of each line color
+  legend(x=length(pop_states$R)/2, y=ymax/1.5, # length(pop_states$t)
          legend=c("Susceptible", "Exposed", "Infected", "Recovered"),
          col=c("black", "blue", "red", "green"),
          lty=NA, lwd=2,
@@ -159,33 +164,36 @@ plot_dynamics = function(pop_states, title=""){
 
 # Exercise 5
 
-beta <- runif(n, 0, 1) # assign random sociability parameters
-alink <- get.net(beta,h,nc)
+# initialize a 'sociability' parameter (a number between 0 and 1) for each person
+beta <- runif(n, 0, 1)
+# create regular network of contacts between each person
+alink <- get.net_loop(beta,h,nc)
 
-# default parameters
+# simulate epidemic using default parameters as specified in nseir function
 def_params = nseir(beta,h,alink)
 
-# remove household and regular network structure
-random_mixing = nseir(beta, h, alink, alpha=c(0,0,.04))
+# simulate epidemic by removing household and regular network structure, keeping average initial infections per day the same for each person
+random_mixing = nseir(beta, h, alink, alpha=c(0,0,.04)) # ??!! double check I did this right, and update the 4th if its wrong
 
-
-# beta vector set to contain average of previous beta for every element
+# simulate epidemic using full model with default parameters, but assigning each person the same 'sociability' parameter, which is the average of our original beta parameters
 avg_beta = 1:length(beta)
 avg_beta[1:length(avg_beta)] = mean(beta)
 constant_beta = nseir(avg_beta,h,alink)
 
-# constant beta and random mixing
+# simulate epidemic by combining the conditions of the previous two simulations
 random_mix_constant_beta = nseir(avg_beta,h,alink, alpha=c(0,0,.04))
 
-# plot all four scenarios side by side
+# set plotting layout/margins for epidemic plots
 par(mfcol=c(2,2), mar=c(4,4,2,1))
+# specify titles to be added to plots
 titles <- c("Default Parameters", "Random Mixing", "Constant Beta", "Random Mix & Constant Beta")
 plots <- list(def_params, random_mixing, constant_beta, random_mix_constant_beta)
+# use plot_dynamics to plot each of the four epidemic conditions
 for (i in seq_along(plots)) {
   plot_dynamics(plots[[i]], titles[i])
 }
 
-
 # Comment on plots
+
 
 
