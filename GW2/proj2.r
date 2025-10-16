@@ -326,5 +326,5 @@ for (i in seq_along(plots)) {
 
 # Link to github repo: https://github.com/mhmc0808/ESP_GroupWorks.git
 # Note about github repo: Our group used the same repo for both project 1 and project
-# 2. The code for project 2 can be found in the GW2 folder, and is titled proj2.R
+# 2. The code for project 2 can be found in the GW2 folder, and is titled proj2.r
 
