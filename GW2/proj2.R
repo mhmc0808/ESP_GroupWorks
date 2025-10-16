@@ -1,43 +1,82 @@
 # Jackson Cramer (s2274544), Maximillian McCourt (s2145762), Natalia Montalvo Cabornero (s1969053)
 
-# As a three, we collaborated on the development and optimisation of each exercise. While we divided forces, 
-# we ensured  a roughly equal distribution of work through code reviews, debugging sessions and meetings for problem solving. 
-# Jackson focused on the plotting in questions 4 and 5 as well as building vector h in question 1. Max focused on the nseir function in queston 3, and Natalia
-# focused on the get.net function in question 2, alongside writing concise, clear code commenting.
+# Our group worked collaboratively on the development and optimisation of all exercises.
+# Although tasks were divided among us, we maintained a balanced workload through 
+# regular code reviews, debugging sessions, and problem-solving meetings.
+# Jackson focused for the plotting functions and household creation. 
+# Max focused on implementing the nseir function.
+# Natalia focusedto the get.net function and commenting.
 
-# Exercise 1
-n <- 1000
-h_max <- 5
 
+######### GENERAL DESCRIPTION #########
+
+# This project extends the SEIR epidemic model by incorporating household and social 
+# network structures. Individuals are grouped into households and connected through 
+# probabilistic contact networks based on sociability parameters. The model simulates 
+# disease transmission through household, network, and random interactions to study 
+# how social structure and individual variability affect epidemic dynamics.
+
+
+
+#########  SETTING UP  ##########
+
+# In this section, we define the population structure and create social networks.
+# The goal is to represent both household connections and external contacts
+# in order to model how social structure influences the spread of infectious diseases.
+
+
+## --- Distribution into Households --- ##
+
+n <- 5000  # Total population size
+h_max <- 5 # Maximum number of people per household
+
+# Each individual is randomly assigned to a household of size between 1 and h_max.
+# This creates a heterogeneous household structure.
 h <- rep(1:n, sample(1:h_max, n, replace=TRUE))[1:n] |> sample()
 
-# Exercise 2
 
-# One looped version of get.net
+## --- Creation of networks --- ## 
+
+# get.net() constructs a social contact network among individuals.
+# Each person i can form contacts with others who are not in the same household.
+# beta = individual sociability
+# h = household structure
+# nc = expected number of contacts per person
 get.net <- function(beta,h,nc=15){
-  # establish population using length of beta
-  n <- length(beta) 
-  # initialise empty contact list with n entries
+  
+  # n <- length(beta) ## do we need to keep this?? Always going to be = og n
+  
+  # Initialize an empty contact list for all individuals
   contacts <- vector("list", n)
-  # record probability coefficient for efficiency
+  
+  # Compute a coefficient to normalize the expected number of contacts
   coeff <- nc/(mean(beta)**2 * (n - 1))
+  
+  # Loop over all individuals to create network links
   for (i in 1:(n-1)){
-    # establish all people in future possible links that are not household members to person i
-    non_h <- h[(i+1):n]!=h[i] # ??!! how does this handle when there are non-household members earlier than i
-    # initialise all possible links for person i
-    poss_links <- c((i+1):n)[non_h]
-    # extract corresponding betas
+    
+    # Identify all possible contacts who are not in the same household
+    non_h <- h[(i+1):n]!=h[i] 
+    poss_links <- c((i+1):n)[non_h]  # initialise all possible links
+    
+    # Extract beta values (sociability parameters) for potential contacts
     beta_poss_links <- beta[poss_links]
-    # finds probabilities of contact between person i and possible future links
+    
+    # Compute the probability of forming a contact between individual i and others
     prob_betas <- coeff*beta[i]*beta_poss_links
-    # generate links based on probabilities
+    
+    # Generate links based on the assigned connection probabilities
     link_idx <- rbinom(length(prob_betas), 1, prob_betas) == 1
     links <- poss_links[link_idx]
+    
+    # Store the links in the contacts list
     contacts[[i]] <- c(contacts[[i]], links)
     for (j in links) {
       contacts[[j]] <- c(contacts[[j]], i)
     }
   }
+  
+  # Return the full contact network as list
   return(contacts)
 }
 
