@@ -198,9 +198,9 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt =
 }
 
 
-#########  VISUALISATION OF DISEASE MODEL ##########
+######### VISUALISATION OF DISEASE MODEL ##########
 
-## --- Plotting function --- ##
+## --- Plotting Function --- ##
 
 # plot_dynamics() function visualises the simulated evolution of the SEIR states 
 # over time as a line plot, with each line in the plot coloured by their 
@@ -235,7 +235,7 @@ plot_dynamics <- function(pop_states, title=""){
 }
 
 
-## --- Distribution into households --- ##
+## --- Distribution into Households --- ##
 
 # Define the population size and create the household and social 
 # network structure. By generating these networks, this will enable us to model how 
@@ -250,7 +250,7 @@ h_max <- 5 # Maximum number of people per household
 # household structure.
 h <- rep(1:n, sample(1:h_max, n, replace=TRUE))[1:n] |> sample()
 
-## --- Comparing Different Disease Model Scenarios --- ##
+## --- Run Different Disease Model Scenarios --- ##
 
 # Simulate and compare four scenarios to investigate the effects of household and contact network structure, 
 # as well as the effect of individual variability in sociability (beta).
@@ -324,4 +324,7 @@ for (i in seq_along(plots)) {
 # population transition through all states from susceptible to recovered, and there 
 # exist less individuals remaining as susceptible by the end of the simulation.
 
-# Link to github repo: 
+# Link to github repo: https://github.com/mhmc0808/ESP_GroupWorks.git
+# Note about github repo: Our group used the same repo for both project 1 and project
+# 2. The code for project 2 can be found in the GW2 folder, and is titled proj2.R
+
