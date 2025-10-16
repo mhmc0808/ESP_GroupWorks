@@ -235,3 +235,81 @@ for (i in seq_along(plots)) {
 
 
 
+
+
+nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt = 100,pinf = .005){
+  # Our SEIR, t data
+  # Using S=0, E=1, I=2, R=3 structure
+  n <- length(beta)
+  # defining alphas
+  alpha_h <- alpha[1]
+  alpha_c <- alpha[2]
+  alpha_r <- alpha[3]
+  # total population
+  x <- rep(0, n)
+  # initialise infected individuals at random
+  x[sample(n, max(1,round(n*pinf)))] <- 2 # use max() to ensure at least 1 person starts as infected
+  # initialise SEIR counts
+  S <- E <- I <- R <- rep(0,nt)
+  S[1] <- sum(x == 0)
+  I[1] <- sum(x == 2)
+  # initialize denominator for probability calculation
+  coeff <- (alpha_r*nc)/(mean(beta)^2 * (n-1))
+  # loop over days
+  for (t in 2:nt){
+    # generate n random deviates for mutually exclusive daily transitions
+    u <- runif(n)
+    x[x==2 & u<delta] <- 3 # infected to recovered
+    x[x==1 & u<gamma] <- 2 # exposed to infected
+    
+    current_I <- which(x==2)
+    if (length(current_I) > 0) { # if no current infected, skip to counting SEIR populations
+      # HOUSEHOLD TRANSMISSION
+      # finds number of infected people each person lives with in each household for all households
+      num_I_h <- tabulate(h[x==2], nbins=max(h))[h]
+      # finds indices of susceptible people living with infected people
+      sus_w_I_h <- which(x==0 & num_I_h>0)
+      # how many infected people is each susceptible person living with, where there is at least one infected person in the household
+      num_I_w_sus_h <- num_I_h[sus_w_I_h]
+      # generate probabilities of each susceptible person becoming infected using alpha_h, adjusting for no. of infected people in household
+      probs_h <- 1 - (1 - alpha_h)^num_I_w_sus_h
+      # infect susceptible people based on probabilities
+      x[sus_w_I_h[runif(length(sus_w_I_h)) < probs_h]] <- 1
+      
+      # CONTACTS TRANSMISSION
+      # all occurences of person in contact with an infected person
+      contacts_I <- unlist(alink[which(x==2)])
+      # how many times each person is in contact with an infected person
+      num_I_c <- tabulate(contacts_I, nbins=length(x))
+      # find indices of susceptible people in contact with infected people
+      sus_w_I_c <- which(x==0 & num_I_c>0)
+      # how many infected contacts does each susceptible person have
+      num_I_w_sus_c <- num_I_c[sus_w_I_c]
+      # find corresponding probabilities of infection for each susceptible person based on number of infected people they are in contact with
+      probs_c <- 1 - (1 - alpha_c)^num_I_w_sus_c
+      # infect susceptible people based on probabilities
+      x[sus_w_I_c[runif(length(sus_w_I_c)) < probs_c]] <- 1
+      
+      # RANDOM TRANSMISSION
+      current_S <- which(x==0)
+      # outer matrix product of betas of currently susceptible and infected people
+      beta_matrix <- outer(beta[current_S], beta[which(x==2)])
+      # find probabilities of each combination of susceptibles and infected people
+      prob_matrix_r <- 1 - coeff*beta_matrix
+      # find probability of each susceptible person being infected by any infected person
+      probs_r <- 1 - apply(prob_matrix_r, 1, prod)
+      # infect susceptible people based on probabilities
+      x[current_S[runif(length(current_S)) < probs_r]] <- 1
+    } 
+    # count of SEIR population
+    S[t] <- sum(x==0)
+    E[t] <- sum(x==1)
+    I[t] <- sum(x==2)
+    R[t] <- sum(x==3)
+  }
+  return(list(S=S,E=E,I=I,R=R,t=1:nt))
+}
+
+
+
+
