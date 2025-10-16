@@ -5,9 +5,11 @@
 # regular code reviews, debugging sessions, and problem-solving meetings.
 # Jackson focused on the plotting functions and household creation. 
 # Max focused on implementing the nseir function.
-# Natalia focused on the get.net function and commenting.
+# Natalia focused on the get.net function and code commenting.
 
-
+# Link to github repo: https://github.com/mhmc0808/ESP_GroupWorks.git
+# Note about github repo: Our group used the same repo for both project 1 and project
+# 2. The code for project 2 can be found in the GW2 folder, and is titled proj2.r
 
 ######### GENERAL DESCRIPTION #########
 
@@ -237,9 +239,7 @@ plot_dynamics <- function(pop_states, title=""){
 
 ## --- Distribution into Households --- ##
 
-# Define the population size and create the household and social 
-# network structure. By generating these networks, this will enable us to model how 
-# social structure influences the spread of infectious diseases.
+# Define the total population size and assign individuals to households.
 
 n <- 10000 # Total population size
 h_max <- 5 # Maximum number of people per household
@@ -300,7 +300,7 @@ for (i in seq_along(plots)) {
 
 # By including household structure and regular contact network, we notice that
 # there appears to be a negligible difference between the final population of 
-# susceptible and recovered individuals. However, there is a greater rate of change 
+# susceptible and recovered individuals. However, there is a greater maximum rate of change 
 # in the population states in our 'Random Mixing' plot (when we have no 
 # household or regular contact network structures) than in our 'Default 
 # Parameters' plot. This is not what was originally expected, as one would assume 
@@ -323,8 +323,3 @@ for (i in seq_along(plots)) {
 # an equal level of 'sociability' of all individuals, a greater number of the 
 # population transition through all states from susceptible to recovered, and there 
 # exist less individuals remaining as susceptible by the end of the simulation.
-
-# Link to github repo: https://github.com/mhmc0808/ESP_GroupWorks.git
-# Note about github repo: Our group used the same repo for both project 1 and project
-# 2. The code for project 2 can be found in the GW2 folder, and is titled proj2.r
-
