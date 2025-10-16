@@ -314,3 +314,31 @@ for (i in seq_along(plots)) {
 # the conclusions should be backed by replicate simulations and summary statistics 
 # (peak size, time-to-peak and final attack rate).
 
+
+
+
+Jackson's 
+
+The default parameter plot represents a situation where individuals’ household and 
+social network contacts affect their susceptibility to exposure. In contrast, the 
+random mixing plot shows a case where these factors have no effect, and individuals
+become exposed only based on their personal “sociability” parameters. When comparing 
+the two plots, we see that the final population distributions are quite similar, 
+meaning the household and contact network did not greatly change how many people 
+ended up in each group. One key difference, though, is that the rate at which people
+change states is higher in the random mixing case than in the default parameter case. 
+This seems unusual, since we would generally expect that if there are more possible
+exposure pathways, the rate of change from susceptible to recovered would be higher. 
+However, we need to note that alpha_r was set to 0.01 in the default model and 0.04 
+in the random mixing model. Therefore, the higher rate may be due to the increased 
+random mixing probability rather than the presence of household and contact probabilities. 
+This suggests that random mixing might have a stronger impact on the spread of the 
+epidemic than the household or contact network.
+
+We can also observe the effect of a constant beta on disease spread. With a constant
+beta, the gap between the green and black lines at the end of the simulation is larger
+than in the non-constant beta cases. This indicates that lower variance in sociability
+increases the number of people who end up recovered and decreases the number still
+susceptible. In other words, the disease spreads to more people when sociability is constant.
+
+
