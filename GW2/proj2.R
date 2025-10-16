@@ -302,43 +302,31 @@ for (i in seq_along(plots)) {
   plot_dynamics(plots[[i]], titles[i])
 }
 
-## --- Comments --- ##
+## --- Comments on findings --- ##
 
-# Including household and regular-contact structure and maintaining heterogeneity 
-# in sociability noticeably reduces the speed, peak size and final attack rate 
-# of the epidemic compared with a homogeneous random-mixing model. Removing 
-# structure (random mixing) and removing β-heterogeneity both make the outbreak 
-# more explosive; together they produce the fastest and largest epidemics. These 
-# results are consistent with epidemic theory: clustering and individual heterogeneity 
-# limit the efficiency of population-wide spread. To support quantitative claims, 
-# the conclusions should be backed by replicate simulations and summary statistics 
-# (peak size, time-to-peak and final attack rate).
+# By including household structure and regular contact network, we notice that
+# there appears to be a negligible difference between the final population of 
+# susceptible and recovered individuals. However, there is a greater rate of change 
+# in the population states in our 'Random Mixing' plot (when we have no 
+# household or regular contact network structures) than in our 'Default 
+# Parameters' plot. This is not what was originally expected, as one would assume 
+# the greater number of possible routes to exposure in the 'Default Parameters' 
+# simulation would lead to a greater maximum rate of infection. However, this 
+# unexpected behaviour could be a result of the 'Random Mixing' plot using a higher 
+# alpha_r random mixing parameter (0.04) than our 'Default Parameters' plot of 
+# alpha_r, using 0.01. This suggests that simulations with higher random mixing 
+# parameter alpha_r may lead to a greater maximum infection rate regardless of 
+# household structures or regular contact networks.
 
-
-
-
-Jackson's 
-
-The default parameter plot represents a situation where individuals’ household and 
-social network contacts affect their susceptibility to exposure. In contrast, the 
-random mixing plot shows a case where these factors have no effect, and individuals
-become exposed only based on their personal “sociability” parameters. When comparing 
-the two plots, we see that the final population distributions are quite similar, 
-meaning the household and contact network did not greatly change how many people 
-ended up in each group. One key difference, though, is that the rate at which people
-change states is higher in the random mixing case than in the default parameter case. 
-This seems unusual, since we would generally expect that if there are more possible
-exposure pathways, the rate of change from susceptible to recovered would be higher. 
-However, we need to note that alpha_r was set to 0.01 in the default model and 0.04 
-in the random mixing model. Therefore, the higher rate may be due to the increased 
-random mixing probability rather than the presence of household and contact probabilities. 
-This suggests that random mixing might have a stronger impact on the spread of the 
-epidemic than the household or contact network.
-
-We can also observe the effect of a constant beta on disease spread. With a constant
-beta, the gap between the green and black lines at the end of the simulation is larger
-than in the non-constant beta cases. This indicates that lower variance in sociability
-increases the number of people who end up recovered and decreases the number still
-susceptible. In other words, the disease spreads to more people when sociability is constant.
-
+# We also note that the random mixing simulation has a greater maximum rate of 
+# change in population states when beta (our 'sociability' parameter) is constant, 
+# which is consistent with our previous findings. However, when using constant beta 
+# for all individuals, we note that our simulation with no household or regular 
+# contact network structures, displayed in  the 'Random Mixing & Constant Beta' 
+# plot, results in a higher final recovered population and lower remaining 
+# susceptible population than our simulation with the household and contact network 
+# structures, as shown in the 'Constant Beta' plot. This indicates that by assuming 
+# an equal level of 'sociability' of all individuals, a greater number of the 
+# population transition through all states from susceptible to recovered, and there 
+# exist less individuals remaining as susceptible by the end of the simulation.
 
