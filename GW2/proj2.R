@@ -129,7 +129,7 @@ plot_dynamics = function(pop_states, title=""){
 # initialize a 'sociability' parameter (a number between 0 and 1) for each person
 beta <- runif(n, 0, 1)
 # create regular network of contacts between each person
-alink <- get.net_loop(beta,h,nc)
+alink <- get.net(beta,h)
 
 # simulate epidemic using default parameters as specified in nseir function
 def_params = nseir(beta,h,alink)
