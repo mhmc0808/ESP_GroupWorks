@@ -19,26 +19,7 @@
 # individual variability affect epidemic dynamics.
 
 
-######### SETUP ##########
-
-# In this section, we define the population size and create the household and social 
-# network structure. By generating these networks, this will enable us to model how 
-# social structure influences the spread of infectious diseases.
-
-
-## --- Distribution into households --- ##
-
-n <- 10000 # Total population size
-h_max <- 5 # Maximum number of people per household
-
-# Randomly assign each person to a household of size 1 to h_max.
-# Household IDs are repeated to give varying sizes, then shuffled
-# to create an n-length vector representing a heterogeneous 
-# household structure.
-h <- rep(1:n, sample(1:h_max, n, replace=TRUE))[1:n] |> sample()
-
-
-## --- Creation of contact network model --- ## 
+######### CONTACT NETWORK MODEL ##########
 
 # get.net() function constructs a contact network model among individuals.
 # Links between individuals are formed probabilistically according to their
@@ -94,8 +75,6 @@ get.net <- function(beta,h,nc=15){
 
 
 #########  SEIR MODEL  ##########
-
-## --- SEIR simulation function --- ##
 
 # nseir() function simulates a disease model over time in a population with 
 # household and network-based social structure. Each individual is in one of four 
@@ -256,9 +235,24 @@ plot_dynamics <- function(pop_states, title=""){
 }
 
 
+## --- Distribution into households --- ##
+
+# Define the population size and create the household and social 
+# network structure. By generating these networks, this will enable us to model how 
+# social structure influences the spread of infectious diseases.
+
+n <- 10000 # Total population size
+h_max <- 5 # Maximum number of people per household
+
+# Randomly assign each person to a household of size 1 to h_max.
+# Household IDs are repeated to give varying sizes, then shuffled
+# to create an n-length vector representing a heterogeneous 
+# household structure.
+h <- rep(1:n, sample(1:h_max, n, replace=TRUE))[1:n] |> sample()
+
 ## --- Comparing Different Disease Model Scenarios --- ##
 
-# We simulate and compare four scenarios to investigate the effects of household and contact network structure, 
+# Simulate and compare four scenarios to investigate the effects of household and contact network structure, 
 # as well as the effect of individual variability in sociability (beta).
 
 # First initialise a 'sociability' parameter (a random number between 0 and 1) for each individual
@@ -302,7 +296,7 @@ for (i in seq_along(plots)) {
   plot_dynamics(plots[[i]], titles[i])
 }
 
-## --- Comments on findings --- ##
+## --- Comments --- ##
 
 # By including household structure and regular contact network, we notice that
 # there appears to be a negligible difference between the final population of 
@@ -330,3 +324,4 @@ for (i in seq_along(plots)) {
 # population transition through all states from susceptible to recovered, and there 
 # exist less individuals remaining as susceptible by the end of the simulation.
 
+# Link to github repo: 
