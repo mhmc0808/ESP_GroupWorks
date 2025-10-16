@@ -7,6 +7,7 @@
 # Max focused on implementing the nseir function.
 # Natalia focused on the get.net function and commenting.
 
+# setwd("GW2") # commented out for submission
 
 ######### GENERAL DESCRIPTION #########
 
