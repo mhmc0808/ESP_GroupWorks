@@ -84,6 +84,11 @@ get.net <- function(beta,h,nc=15){
 
 #########  SEIR MODEL  ##########
 
+## --- SEIR simulation funciton --- ##
+
+# nseir() simulates an epidemic over time in a population with household and network-based social structure.
+# Each individual is in one of four states: Susceptible (S=0), Exposed (E=1), 
+# Infected (I=2), or Recovered (R=3).
 nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt = 100,pinf = .005){
   # Our SEIR, t data
   # Using S=0, E=1, I=2, R=3 structure
@@ -142,9 +147,9 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt =
 ## --- Plotting function --- ##
 
 # plot_dynamics() visualizes the evolution of the SEIR compartments over time.
+# pop_states = population state counts as produced by nseir
+# title = desired plot title
 plot_dynamics = function(pop_states, title=""){
-  # pop_states = population state counts as produced by nseir
-  # title = desired plot title
   
   # Calculate highest population among groups for consistent axis scaling
   ymax <- max(c(pop_states$S, pop_states$E, pop_states$I, pop_states$R))
