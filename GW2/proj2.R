@@ -43,8 +43,9 @@ h <- rep(1:n, sample(1:h_max, n, replace=TRUE))[1:n] |> sample()
 # h = household structure
 # nc = expected number of contacts per person
 get.net <- function(beta,h,nc=15){
-  
-  # n <- length(beta) ## do we need to keep this?? Always going to be = og n
+
+  # Population size
+  n <- length(beta) 
   
   # Initialize an empty contact list for all individuals
   contacts <- vector("list", n)
@@ -89,6 +90,15 @@ get.net <- function(beta,h,nc=15){
 # nseir() simulates an epidemic over time in a population with household and network-based social structure.
 # Each individual is in one of four states: Susceptible (S=0), Exposed (E=1), 
 # Infected (I=2), or Recovered (R=3).
+# beta =
+# h =
+# alink =
+# alpha =
+# delta =
+# gamma = 
+# nc = 
+# nt = 
+# pinf = 
 nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),delta=.2,gamma=.4,nc=15, nt = 100,pinf = .005){
   # Our SEIR, t data
   # Using S=0, E=1, I=2, R=3 structure
@@ -176,6 +186,7 @@ plot_dynamics = function(pop_states, title=""){
 
 
 ## --- Comparing Different Epidemic Scenarios --- ##
+
 # We simulate and compare four scenarios to investigate the effects of household and network structure, 
 # as well as individual variability in sociability (beta).
 
