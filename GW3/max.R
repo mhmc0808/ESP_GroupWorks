@@ -1,3 +1,33 @@
+                                                                                     #                                                                      #
+                                                                                     #                                                                      #
+                                                                                    #                                                                        #
+                                                                                   #                                                                          #
+                                                                                  #                                                                            #
+                                                                                  #                                                                            #
+                                                                                 #                                                                              #
+                                                                                 #                                                                              #
+                                                                                 #                                                                              #
+                                                                                 #                                                                              #
+                                                                                  #                                      #                                     #
+                                                                                   #                  #                  #                  #                 #
+                                                                                    #                ###                # #                ###               #                                        
+                                                                                      ##              #               ##   ##               #             ##                                                
+                                                                                        ###                        ###       ###                       ###                                                   
+                                                                                           #######         ########             ########        #######                                                                                
+                                                                                                   ########                             ########                                                                   
+                                                                                                                                                                                                    
+
+
+
+
+
+
+
+
+
+
+
+
 # 1.
 
 library(splines)
@@ -81,8 +111,7 @@ S <- part1$S
 
 
 
-pnll <- function(data, gamma, X, S, lambda) {
-  y <- data$deaths
+pnll <- function(y, gamma, X, S, lambda) {
   B <- exp(gamma)
   # define penalty term
   penalty <- 1/2*lambda*t(B) %*% S %*% B
@@ -97,8 +126,7 @@ pnll <- function(data, gamma, X, S, lambda) {
 
 
 
-pnll_grad <- function(data, gamma, X, S, lambda){
-  y <- data$deaths
+pnll_grad <- function(y, gamma, X, S, lambda){
   B <- exp(gamma)
   # derivative of the penalty term
   penalty_grad <- lambda*diag(B) %*% S %*% B
@@ -119,9 +147,10 @@ pnll_grad <- function(data, gamma, X, S, lambda){
 gamma <- rpois(80, 0.2)
 lambda <- 0.5
 
+y <- data$deaths
 # testing penalised neg. log likelihood and its gradient
-pnll(data, gamma, X, S, lambda)
-pnll_grad(data, gamma, X, S, lambda)
+pnll(y, gamma, X, S, lambda)
+pnll_grad(y, gamma, X, S, lambda)
 
 
 
@@ -153,7 +182,7 @@ finite_diff <- function(f, gamma, eps = 1e-6) {
 
 # wraps function so we can use it in our finite_diff function
 pnll_wrapper <- function(gamma_vec) {
-  pnll(data, gamma_vec, X, S, lambda)
+  pnll(y, gamma_vec, X, S, lambda)
 }
 
 # initialise gamma of all 0 entries
@@ -162,12 +191,13 @@ gamma0 <- rep(0, ncol(X))
 # finds the gradient approximations of gamma0 (for all dimensions) in pnll function
 grad_numeric <- finite_diff(pnll_wrapper, gamma0)
 # finds the gradient of pnll using pnll_grad function
-grad_analytic <- pnll_grad(data, gamma0, X, S, lambda)
+grad_analytic <- pnll_grad(y, gamma0, X, S, lambda)
 
 # takes max difference in dimensions of pnll between gradient approximations
 # and pnll_grad function
 max_diff <- max(abs(grad_numeric - grad_analytic))
 print(max_diff)
+
 
 # Max's notes: 3 functions covered. 
 # - pnll(data, gamma, X, S, lambda) finds PNLL (penalised neg. log likelihood) 
@@ -185,3 +215,72 @@ print(max_diff)
 
 
 # 4.
+
+
+# function to define log likelihood (based on pnll function in Q2)
+loglik <- function(y, beta_hat, X, S, lambda) {
+  # define penalty term
+  penalty <- 1/2*lambda*t(beta_hat) %*% S %*% beta_hat
+  # define mu
+  mu <- X %*% beta_hat
+  # define poisson log likelihood (use lfactorial to avoid numeric instability)
+  ll_pois <- sum(y*log(mu) - mu - lfactorial(y))
+  return(ll_pois)
+}
+
+
+
+log_lambda_seq <- seq(-13,-7,length=50)
+lambda_seq <- 10^(log_lambda_seq)
+
+
+BIC <- rep(NA, length(lambda_seq))
+
+# iterate through lambda sequence
+for (i in 1:length(lambda_seq)){
+  
+  # take lambda for this iteration
+  lambda <- lambda_seq[i]
+  
+  # define optim fit
+  fit <- optim(
+    par = gamma,        # predicting gamma 
+    fn = pnll,          # using pnll as function
+    gr = pnll_grad,     # using pnll_grad as gradient of function
+    method = "BFGS",
+    y=y,                # inputs for pnll and pnll_grad
+    X = X,              # "
+    S = S,              # "
+    lambda = lambda,    # "
+    control = list(maxit = 1000)
+  )
+  # define beta_par
+  beta_par <- exp(fit$par)
+  # define mu_hat
+  mu_hat <- X %*% beta_par
+  # find W, H0 and H_lambda
+  W <- diag(as.vector(y/(mu_hat^2)))
+  H0 <- t(X) %*% W %*% X
+  H_lambda <- H0 + lambda*S
+  
+  # find effective degrees of freedom of the model
+  H_invH0 <- solve(H_lambda, H0) 
+  EDF <- sum(diag(H_invH0))
+  n <- length(y)
+  
+  # BIC criterion
+  BIC[i] <- -2*loglik(y, beta_par, X, S, lambda) + log(n)*EDF
+}
+ 
+# minimised BIC criterion
+BIC_min <- min(BIC)
+# lambda corresponding to minimised BIC criterion
+lambda_seq[which(BIC==min(BIC))]
+
+
+# Max's notes: - Loop to find lambda corresponding to minimised BIC criterion
+# I believe loop logic is correct and produces correct results
+# However, it is inefficient. It takes ~50s to run. 
+# In order to make this more efficient, we will need to find more efficient
+# ways to perform matrix multiplication for finding EDF and also look back
+# on loglik, pnll and pnll_grad functions and focus on optimisation.
