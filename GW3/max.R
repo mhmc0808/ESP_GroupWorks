@@ -61,6 +61,10 @@ evaluate_x_xtilde_s <- function(data, k = 80, edur = 3.151, sdur = 0.469) {
 
 part1 <- evaluate_x_xtilde_s(data)
 
+X <- part1$X
+X_tilde <- part1$X_tilde
+S <- part1$S
+
 
 # jackson's notes: 
 #t <- data$julian
@@ -100,8 +104,10 @@ pnll_grad <- function(data, gamma, X, S, lambda){
   penalty_grad <- lambda*diag(B) %*% S %*% B
   # define mu
   mu <- X %*% B
-  # derivative of the poisson log likelihood (check further)
-  ll_pois_grad <- t(X) %*% (mu - y)
+  # F Matrix
+  F <- diag(as.vector(y/mu - 1)) %*% X %*% diag(B)
+  # derivative of the poisson log likelihood is apparently colsums of F
+  ll_pois_grad <- colSums(F)
   # define derivative of penalised negative log likelihood
   pnll_grad <- - ll_pois_grad + penalty_grad
   return(pnll_grad)
@@ -119,32 +125,63 @@ pnll_grad(data, gamma, X, S, lambda)
 
 
 
-# checking finite differencing is not working. need to come back to.
+# Check finite difference
+
 finite_diff <- function(f, gamma, eps = 1e-6) {
+  # adds small perturbation to each parameter of vector gamma, and stores the 
+  # difference between f(gamma+eps_i) and f(gamma) over the perturbation size,
+  # as in first principles of differentiation. The function returns all gradient
+  # approximation changes of all parameters of gamma.
+  
+  # initialise empty numeric vector to store approximated gradient values
   k <- length(gamma)
   grad_approx <- numeric(k)
   
+  # for each gamma
   for (i in 1:k) {
+    # take copy of gamma vector
     gamma_eps <- gamma
+    # add small perturbation epsilon to the i-th parameter of gamma vector
     gamma_eps[i] <- gamma_eps[i] + eps
+    # approximate derivative for i-th parameter of gamma using first principles
     grad_approx[i] <- (f(gamma_eps) - f(gamma)) / eps
   }
   
+  # return gradient approximations of all dimensions of gamma
   return(grad_approx)
 }
 
-
+# wraps function so we can use it in our finite_diff function
 pnll_wrapper <- function(gamma_vec) {
   pnll(data, gamma_vec, X, S, lambda)
 }
 
+# initialise gamma of all 0 entries
+gamma0 <- rep(0, ncol(X)) 
 
-gamma0 <- rep(0, ncol(X))  # starting point
-
-
+# finds the gradient approximations of gamma0 (for all dimensions) in pnll function
 grad_numeric <- finite_diff(pnll_wrapper, gamma0)
+# finds the gradient of pnll using pnll_grad function
 grad_analytic <- pnll_grad(data, gamma0, X, S, lambda)
 
-
+# takes max difference in dimensions of pnll between gradient approximations
+# and pnll_grad function
 max_diff <- max(abs(grad_numeric - grad_analytic))
 print(max_diff)
+
+# Max's notes: 3 functions covered. 
+# - pnll(data, gamma, X, S, lambda) finds PNLL (penalised neg. log likelihood) 
+# - pnll_grad(data, gamma, X, S, lambda) finds gradient of PNLL 
+# - finite_diff creates a function to approximate gradients of a given function
+#     (in our case pnll) by introducing small perturbations of gamma in each
+#     dimension.
+# SUCCESS! The max_diff < 0.001, seems to approximate gradient well.
+
+
+# 3.
+
+# may come back to
+
+
+
+# 4.
