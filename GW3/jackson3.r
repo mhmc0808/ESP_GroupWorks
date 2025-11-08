@@ -7,7 +7,7 @@ library(ggplot2)
 # setwd("C:/Users/Max McCourt/OneDrive/Documents/Master's Year/Semester 1/ESP/Group Works/GW3") ## comment out of submitted
 data <- read.table("engcov.txt")
 
-
+# 1
 
 evaluate_x_xtilde_s <- function(data, k = 80, edur = 3.151, sdur = 0.469) {
   
@@ -124,66 +124,6 @@ pnll(y, gamma, X, S, lambda)
 pnll_grad(y, gamma, X, S, lambda)
 
 
-
-# Check finite difference
-
-finite_diff <- function(f, gamma, eps = 1e-6) {
-  # adds small perturbation to each parameter of vector gamma, and stores the 
-  # difference between f(gamma+eps_i) and f(gamma) over the perturbation size,
-  # as in first principles of differentiation. The function returns all gradient
-  # approximation changes of all parameters of gamma.
-  
-  # initialise empty numeric vector to store approximated gradient values
-  k <- length(gamma)
-  grad_approx <- numeric(k)
-  
-  # for each gamma
-  for (i in 1:k) {
-    # take copy of gamma vector
-    gamma_eps <- gamma
-    # add small perturbation epsilon to the i-th parameter of gamma vector
-    gamma_eps[i] <- gamma_eps[i] + eps
-    # approximate derivative for i-th parameter of gamma using first principles
-    grad_approx[i] <- (f(gamma_eps) - f(gamma)) / eps
-  }
-  
-  # return gradient approximations of all dimensions of gamma
-  return(grad_approx)
-}
-
-
-
-# wraps function so we can use it in our finite_diff function
-pnll_wrapper <- function(gamma_vec) {
-  pnll(y, gamma_vec, X, S, lambda)
-}
-
-# initialise gamma of all 0 entries
-gamma0 <- rep(0, ncol(X)) 
-
-# finds the gradient approximations of gamma0 (for all dimensions) in pnll function
-grad_numeric <- finite_diff(pnll_wrapper, gamma0)
-# finds the gradient of pnll using pnll_grad function
-grad_analytic <- pnll_grad(y, gamma0, X, S, lambda)
-
-# takes max difference in dimensions of pnll between gradient approximations
-# and pnll_grad function
-max_diff <- max(abs(grad_numeric - grad_analytic))
-print(max_diff)
-
-
-# Max's notes: 3 functions covered. 
-# - pnll(data, gamma, X, S, lambda) finds PNLL (penalised neg. log likelihood) 
-# - pnll_grad(data, gamma, X, S, lambda) finds gradient of PNLL 
-# - finite_diff creates a function to approximate gradients of a given function
-#     (in our case pnll) by introducing small perturbations of gamma in each
-#     dimension.
-# SUCCESS! The max_diff < 0.001, seems to approximate gradient well.
-
-
-
-# Jackson's approach to finite differencing (more accurately follows notes)
-
 gamma <- rpois(80, 0.2)
 lambda <- 0.5
 y <- data$deaths
@@ -243,11 +183,8 @@ ggplot(plot_df, aes(x = day)) +
 
 # 4.
 
-
-# function to define log likelihood (based on pnll function in Q2)
-loglik <- function(y, beta_hat, X, S, lambda) {
-  # define penalty term
-  penalty <- 1/2*lambda*t(beta_hat) %*% S %*% beta_hat
+# function to define log likelihood for use in BIC criterion calculation
+ll <- function(y, beta_hat, X, S, lambda) {
   # define mu
   mu <- X %*% beta_hat
   # define poisson log likelihood (use lfactorial to avoid numeric instability)
@@ -256,19 +193,15 @@ loglik <- function(y, beta_hat, X, S, lambda) {
 }
 
 
-
 log_lambda_seq <- seq(-13,-7,length=50)
-lambda_seq <- 10^(log_lambda_seq)
-
+lambda_seq <- exp(log_lambda_seq) # in R log() is natural log, so take exp() instead of 10^
+n <- length(y)
 
 BIC <- rep(NA, length(lambda_seq))
 
-# iterate through lambda sequence
 for (i in 1:length(lambda_seq)){
-  
   # take lambda for this iteration
   lambda <- lambda_seq[i]
-  
   # define optim fit
   fit <- optim(
     par = gamma,        # predicting gamma 
@@ -278,8 +211,8 @@ for (i in 1:length(lambda_seq)){
     y=y,                # inputs for pnll and pnll_grad
     X = X,              # "
     S = S,              # "
-    lambda = lambda,    # "
-    control = list(maxit = 1000)
+    lambda = lambda    # "
+    # control = list(maxit = 1000) # not sure why you are using this line here !!
   )
   # define beta_par
   beta_par <- exp(fit$par)
@@ -293,24 +226,113 @@ for (i in 1:length(lambda_seq)){
   # find effective degrees of freedom of the model
   H_invH0 <- solve(H_lambda, H0) 
   EDF <- sum(diag(H_invH0))
-  n <- length(y)
+  # n <- length(y) # length(y) doesnt change so define outside of loop !!
   
   # BIC criterion
-  BIC[i] <- -2*loglik(y, beta_par, X, S, lambda) + log(n)*EDF
+  BIC[i] <- -2*ll(y, beta_par, X, S, lambda) + log(n)*EDF
 }
 
 # minimised BIC criterion
 BIC_min <- min(BIC)
 # lambda corresponding to minimised BIC criterion
-lambda_seq[which(BIC==min(BIC))]
+lambda_bic <- lambda_seq[which(BIC==min(BIC))]
+lambda_bic
 
+# 5
 
-# Max's notes: - Loop to find lambda corresponding to minimised BIC criterion
-# I believe loop logic is correct and produces correct results
-# However, it is inefficient. It takes ~50s to run. 
-# In order to make this more efficient, we will need to find more efficient
-# ways to perform matrix multiplication for finding EDF and also look back
-# on loglik, pnll and pnll_grad functions and focus on optimisation.
+n_bootstrap <- 200
+# intialize empty matrix to store bootstrap replicates
+# each row represents a different time point
+# each column represents a different bootstrap sample
+# each entry represents f(t) at a given time for a given bootstrap
+f_hat_boot <- matrix(NA, nrow = nrow(X_tilde), ncol = n_bootstrap)
+
+# update previous pnll function to include weights
+pnll_w <- function(y, gamma, X, S, lambda, w) {
+  B <- exp(gamma)
+  # define penalty term
+  penalty <- 1/2*lambda*t(B) %*% S %*% B
+  # define mu
+  mu <- X %*% B
+  # define poisson log likelihood (use lfactorial to avoid numeric instability)
+  ll_pois <- sum(w * (y*log(mu) - mu - lfactorial(y))) # weight the log likelihood
+  # define penalised negative log likelihood
+  pnll <- -ll_pois + penalty
+  return(pnll)
+}
+
+# update previous pnll_grad function to include weights
+pnll_grad_w <- function(y, gamma, X, S, lambda, w){
+  B <- exp(gamma)
+  # derivative of the penalty term
+  penalty_grad <- lambda*diag(B) %*% S %*% B
+  # define mu
+  mu <- X %*% B
+  # create F Matrix
+  F_value <- diag(as.vector(w * (y/mu - 1))) %*% X %*% diag(B) # weight the log likelihood portion of the gradient
+  # sum over all rows to obtain vector of partial derivatives for each gamma_i
+  ll_pois_grad <- colSums(F_value)
+  # define derivative of penalised negative log likelihood
+  pnll_grad <- -ll_pois_grad + penalty_grad
+  return(pnll_grad)
+}
+
+# perform the bootstrapping
+for (b in 1:n_bootstrap) {
+  # generate bootstrap weights 
+  wb <- tabulate(sample(n, replace = TRUE), n)
+  # fit penalized model with weights
+  fit_b <- optim(
+    par = gamma, 
+    fn = pnll_w, 
+    gr = pnll_grad_w,
+    y = y, X = X, S = S, lambda = lambda_bic, w = wb,
+    method = "BFGS"
+  )
+  
+  # extract fitted coefficients
+  gamma_b <- fit_b$par
+  B_b <- exp(gamma_b)
+  
+  # compute f_hat for this bootstrap and add it to f_hat matrix (each column of matrix will represent a f_hat bootstrap sample)
+  f_hat_boot[, b] <- X_tilde %*% B_b
+}
+
+# 6
+
+f_hat_mean <- rowMeans(f_hat_boot) # obtain average f_hat across replicates for each time period
+f_hat_lower <- apply(f_hat_boot, 1, quantile, probs = 0.025) # obtain 2.5% quantity of f_hat_boot
+f_hat_upper <- apply(f_hat_boot, 1, quantile, probs = 0.975) # obtain 97.5% quantile of f_hat_boot
+# need to define f_seq outside the function from part 1
+lower_bound <- min(data$julian) - 30; upper_bound <- max(data$julian); f_seq <- seq(lower_bound, upper_bound, by=1)
+
+# Combine bootstrap results into a data frame
+plot_df_6 <- data.frame(
+  day = f_seq, # days corresponding to X_tilde
+  f_mean = f_hat_mean,
+  f_lower = f_hat_lower,
+  f_upper = f_hat_upper
+)
+
+ggplot() +
+  # True deaths
+  geom_line(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths"), size = 0.8) +
+  # Fitted deaths
+  geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), size = 0.8) +
+  # Daily infection rate with 95% CI
+  geom_ribbon(aes(x = f_seq, ymin = f_hat_lower, ymax = f_hat_upper), fill = "blue", alpha = 0.2) +
+  geom_line(aes(x = f_seq, y = f_hat_mean, color = "Daily Infections"), size = 0.8) +
+  # Secondary axis: rescale infections to match the main axis numerically
+  scale_y_continuous(
+    name = "Number of Deaths",
+    sec.axis = sec_axis(~ ., name = "Daily New Infections")
+  ) +
+  labs(
+    x = "Day of 2020",
+    color = "Legend",
+    title = "Observed & Fitted Deaths with Daily Infections (95% CI)"
+  ) +
+  theme_minimal()
 
 
 
