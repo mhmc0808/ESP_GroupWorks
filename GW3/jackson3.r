@@ -260,7 +260,6 @@ pnll_w <- function(y, gamma, X, S, lambda, w) {
 }
 
 
-
 # update previous pnll_grad function to include weights
 pnll_grad_w <- function(y, gamma, X, S, lambda, w){
   B <- exp(gamma)
@@ -276,6 +275,8 @@ pnll_grad_w <- function(y, gamma, X, S, lambda, w){
   pnll_grad <- -ll_pois_grad + penalty_grad
   return(pnll_grad)
 }
+
+
 
 
 # perform the bootstrapping
@@ -335,6 +336,12 @@ ggplot() +
     title = "Observed & Fitted Deaths with Daily Infections (95% CI)"
   ) +
   theme_minimal()
+
+
+
+
+
+
 
 
 
