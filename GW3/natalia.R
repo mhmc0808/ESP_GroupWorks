@@ -18,11 +18,13 @@
 # trajectory by deconvolving death counts with a delay distribution from infection
 # to death. 
 
-
+setwd("C:/Users/natmo/OneDrive/Escritorio/MSc/SEM1/Extended Statistical Programming/Assignments/GW3")
 library(splines)
 library(ggplot2)
 data <- read.table("engcov.txt")
 
+
+set.seed(3)  # remove
 
 ######### MODEL SET UP ##########
 
@@ -31,7 +33,8 @@ data <- read.table("engcov.txt")
 # that maps infections to deaths via delay distribution and Penalty matrix (S) 
 # for smoothing. 
 
-evaluate_matrices <- function(data, k = 80, edur = 3.151, sdur = 0.469) {
+evaluate_matrices <- function(data, k = 80, edur = 3.151, sdur = 0.469, lower_bound, 
+                              upper_bound, f_seq) {
   
   # Inputs;
   #   k - number of B-spline basis functions
@@ -40,11 +43,6 @@ evaluate_matrices <- function(data, k = 80, edur = 3.151, sdur = 0.469) {
   
   # Create penalty matrix S
   S <- crossprod(diff(diag(k), diff=2))
-  
-  # Days of infection, extending the sequence 30 days before the first observed death
-  lower_bound <- min(data$julian) - 30
-  upper_bound <- max(data$julian)
-  f_seq <- seq(lower_bound, upper_bound, by=1)
   
   # Create the k+4 knots for B-splines
   # Sequence of k+4 evenly spaced knots
@@ -67,7 +65,7 @@ evaluate_matrices <- function(data, k = 80, edur = 3.151, sdur = 0.469) {
   # Delay distribution from infection to death (pd)
   d <- 1:k
   pd <- dlnorm(d, edur, sdur)
-  pd <- pd / sum(pd)     # normalise the sum to 1
+  pd <- pd / sum(pd)      # normalise the sum to 1
   
   n <- length(data$date)  # number of death days
   m <- length(pd)         # maximum of days to consider    
@@ -91,14 +89,21 @@ evaluate_matrices <- function(data, k = 80, edur = 3.151, sdur = 0.469) {
 }
 
 ## --- Generate model matrices --- ##
-model_matrices <- evaluate_matrices(data)
+
+# Days of infection, extending the sequence 30 days before the first observed death
+lower_bound <- min(data$julian) - 30
+upper_bound <- max(data$julian)
+f_seq <- seq(lower_bound, upper_bound, by=1)
+
+model_matrices <- evaluate_matrices(data,lower_bound=lower_bound, 
+                                    upper_bound=upper_bound, f_seq=f_seq)
 X <- model_matrices$X
 X_tilde <- model_matrices$X_tilde
 S <- model_matrices$S
 
 
 
-######### PENALIsED NEGATIVE LOG-LIKELIHOOD FUNCTIONS ##########
+######### PENALISED NEGATIVE LOG-LIKELIHOOD FUNCTIONS ##########
 
 # We are going to fit the model using a penalised Poisson likelihood with a 
 # positive constraint
@@ -115,10 +120,11 @@ pnll <- function(y, gamma, X, S, lambda) {
   #   lambda - smoothing parameter
 
   B <- exp(gamma)               # transformation of coefficients
-  mu <- pmax(X %*% B, 1e-15)    # expected deaths, avoiding zero
+  mu <- pmax(X %*% B)           # expected deaths
   
   # Smoothing penalty term
   penalty <- 1/2*lambda * sum(B * (S %*% B))     # OPTIMISED VERSION
+  # penalty <- 1/2*lambda*t(B) %*% S %*% B
   
   # Poisson log likelihood
   ll_pois <- sum(y*log(mu) - mu - lfactorial(y))
@@ -141,10 +147,10 @@ pnll_grad <- function(y, gamma, X, S, lambda){
   #   lambda - smoothing parameter
   
   B <- exp(gamma)
-  mu <- pmax(X %*% B, 1e-15)  
+  mu <- pmax(X %*% B)                 # expected deaths
   
   # Gradient of log-likelihood: dl/dgamma = colsums of diag(y_i/mu_i - 1)*X*diag(B)
-  F_value <- diag(as.vector(y/mu - 1)) %*% X %*% diag(B)            ## this can be optimised??
+  F_value <- diag(as.vector(y/mu - 1)) %*% X %*% diag(B)            
   ll_pois_grad <- colSums(F_value)
   
   # Smoothness penalty gradient
@@ -157,53 +163,45 @@ pnll_grad <- function(y, gamma, X, S, lambda){
 }
 
 
-## --- Test functions with example parameters --- ##
+## --- Test functions --- ##
 y <- data$deaths
-gamma <- rpois(80, 0.2)
-lambda <- 0.5
+lambda <- 5*10^-5
+k <- 80
+gamma <- rep(0,k)
 pnll(y, gamma, X, S, lambda)
 pnll_grad(y, gamma, X, S, lambda)
 
 
-## --- Gradient validation --- ##
+## --- Gradient validation uing finite differences--- ##
 
-# This function validates analytical gradient against finite differences
-finite_diff <- function(f, gamma, eps = 1e-7) {
-  # Inputs:
-  #   f - function that computes the objective value
-  #   gamma - parameter vector at which to compute the gradient
-  #   eps - finite difference step size, default = 1e-7
-  
-  k <- length(gamma)
-  grad_approx <- numeric(k)
+th0 <- gamma                   # test paramater vector
+fd <- numeric(length(th0))     # vector to store the approximation
 
-  for (i in 1:k) {
-    gamma_eps <- gamma
-    # Add small perturbation to the i-th parameter of gamma vector
-    gamma_eps[i] <- gamma_eps[i] + eps
-    # Approximate derivative using first principles
-    grad_approx[i] <- (f(gamma_eps) - f(gamma)) / eps
-  }
-  
-  # Gradient approximations of all dimensions of gamma
-  return(grad_approx)
+# Penalised negative log-likelihood at th0
+nll0 <- pnll(y = y, gamma = th0, X = X, S = S, lambda = lambda) 
+
+eps <- 1e-7                    # perturbation size
+
+# Loop over each parameter
+for (i in 1:length(th0)) { 
+  th1 <- th0
+  th1[i] <- th1[i] + eps
+  # Pnll at that perturbed parameter
+  nll1 <- pnll(y = y, gamma = th1, X = X, S = S, lambda = lambda)
+  # Approximate the partial derivative with the finite difference
+  fd[i] <- (nll1 - nll0) / eps
 }
 
-# Wrapper for finite difference validation
-pnll_wrapper <- function(gamma_vec) {
-  # Inputs:
-  #   gamma_vec - parameter vector length K
-  pnll(y, gamma_vec, X, S, lambda)
-}
+# Find analytic gradient at th0
+grad_test <- pnll_grad(y = y, gamma = th0, X = X, S = S, lambda = lambda)
 
-# Compare analytical and numerical gradients
-gamma0 <- rep(0, ncol(X)) 
-grad_numeric <- finite_diff(pnll_wrapper, gamma0)   # Gradient approx of gamma0 
-grad_analytic <- pnll_grad(y, gamma0, X, S, lambda) # Gradient of pnll
+# Finite-difference vs analytic gradient
+cbind(fd, grad_test) 
 
-max_diff <- max(abs(grad_numeric - grad_analytic))  # Max difference in dimensions
-print(paste("Maximum gradient difference:", max_diff))
-#  0.000277084
+# Maximum absolute difference 
+max_diff <- max(abs(grad_test-fd)) 
+print(paste("Maximum gradient difference:", round(max_diff,8)))
+#  0.00027709
 
 
 
@@ -213,24 +211,26 @@ print(paste("Maximum gradient difference:", max_diff))
 # This provides a preliminary fit to verify the model is working correctly
 # before proceeding with smoothing parameter selection.
 
+
 fit <- optim(par = gamma,         # initial parameter values
              fn = pnll,           # penalized negative log-likelihood
              gr = pnll_grad,      # gradient function for efficient optimization
              y = y,               # observed death counts
              X = X,               # convolution matrix
              S = S,               # penalty matrix
-             lambda = (5*10^-5),  # initial smooting parameter
+             lambda = lambda,  # initial smoothing parameter
              method = "BFGS")     # Quasi-Newton optimization method with gradient
 
 # Extract estimated parameters after optimization
 gamma_hat <- fit$par
 B_hat <- exp(gamma_hat)
 
-# Compute fitted deaths (expected values)
+# Compute fitted deaths and fitted infections
 fitted_deaths <- as.vector(X %*% B_hat)
+fitted_infections <- as.vector(X_tilde %*% B_hat)
 
 # Compare with actual data
-true_deaths <- data$deaths        # actual deaths from dataset
+true_deaths <- data$deaths        # actual deaths from data set
 day_of_2020 <- data$julian
 
 # Create data frame for plotting
@@ -240,17 +240,25 @@ plot_df <- data.frame(
   fitted_deaths = fitted_deaths)
 
 # Comparison plot: observed vs fitted deaths
-initial_plot <- ggplot(plot_df, aes(x = day)) +
-  geom_point(aes(y = true_deaths, color = "Observed"), size = 1, alpha = 0.6) +  # added point to visualize better
-  geom_line(aes(y = true_deaths, color = "Observed"), size = .7) +
-  geom_line(aes(y = fitted_deaths, color = "Fitted"), size = .7) +
-  labs(x = "Day of 2020",
-       y = "Number of Deaths",
-       title = "Observed vs Fitted Deaths Over Time",
-       color = "Legend") +
+initial_plot <- ggplot() +
+  # True deaths
+  geom_line(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths"), size = 0.8) +
+  # Fitted deaths
+  geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), size = 0.8) +
+  geom_line(aes(x = f_seq, y = fitted_infections, color = "Daily Infections"), size = 0.8) +
+  # Secondary axis
+  #scale_y_continuous(
+  #  name = "Number of Deaths",
+  #  sec.axis = sec_axis(~ ., name = "Daily New Infections")
+  #) +
+  labs(
+    x = "Day of 2020",
+    color = "Legend",
+    title = "Observed & Fitted Deaths with Daily Infections (95% CI)"
+  ) +
   theme_minimal()
 
-
+initial_plot
 
 ######### SMOOTHING PARAMETER SELECTION ##########
 
@@ -275,13 +283,11 @@ ll <- function(y, beta_hat, X, lfly) {
 
 # Define sequence of lambda values to test
 log_lambda_seq <- seq(-13,-7,length=50)
-lambda_seq <- 10^(log_lambda_seq)    # convert to actual lambda values
+lambda_seq <- exp(log_lambda_seq)    # convert to actual lambda values
 
 BIC <- numeric(length(lambda_seq))   # initialize BIC storage vector
 
-Xt <- t(X) 
-
-initial_gamma <- gamma
+Xt <- t(X)  # transpose of X to save some time in the loop
 
 # Grid search over lambda values to find optimal smoothing parameter
 for (i in seq(lambda_seq)){
@@ -290,16 +296,15 @@ for (i in seq(lambda_seq)){
   lambda <- lambda_seq[i]
   
   # Fit model with current lambda using BFGS optimization
-  fit <- optim(par = initial_gamma,  # initial parameter values
-               fn = pnll,           # penalized negative log-likelihood
-               gr = pnll_grad,      # gradient function for efficient optimization
-               y = y,               # observed death counts
-               X = X,               # convolution matrix
-               S = S,               # penalty matrix
-               lambda = lambda,  # initial smoothing parameter
-               method = "BFGS",     # Quasi-Newton optimization method with gradient
-               control = list(maxit = 1000)) # ensure convergence
-  
+  fit <- optim(par = gamma,# gamma_hat???           # initial parameter values
+               fn = pnll,             # penalized negative log-likelihood
+               gr = pnll_grad,        # gradient function
+               y = y,                 # observed death counts
+               X = X,                 # convolution matrix
+               S = S,                 # penalty matrix
+               lambda = lambda,       # initial smoothing parameter
+               method = "BFGS")       # Optimization method
+            
   # Extract estimated parameters
   beta_par <- exp(fit$par)
   mu_hat <- as.vector(X %*% beta_par)
@@ -331,14 +336,8 @@ lambda_bic
 
 
 ######### BOOTSTRAP UNCERTAINTY QUANTIFICATION #########
-
-# Number of bootstrap replicates for uncertainty estimation
-n_bootstrap <- 200
-
-# Initialise empty matrix to store bootstrap replicates
-#   Each column represents a different bootstrap sample
-#   Each row represents f(t) at a specific time point across all bootstrap samples
-f_hat_boot <- matrix(NA, nrow = nrow(X_tilde), ncol = n_bootstrap)
+# For bootstrap resamples, each observation contributes proportionally to the
+# weights of the Pnll and its gradient, so we need to modify both
 
 
 # Weighted version of penalized negative log-likelihood for bootstrap
@@ -354,7 +353,7 @@ pnll_w <- function(y, gamma, X, S, lambda, w) {
   #   w - vector of bootstrap weights 
   
   B <- exp(gamma)               # transformation of coefficients
-  mu <- pmax(X %*% B, 1e-15)    # expected deaths, avoiding zero
+  mu <- pmax(X %*% B)           # expected deaths, avoiding zero
   
   # Smoothing penalty term
   penalty <- 1/2*lambda* sum(B*(S %*% B))   # OPTIMISED VERSION
@@ -380,7 +379,7 @@ pnll_grad_w <- function(y, gamma, X, S, lambda, w){
   #   w - vector of bootstrap weights 
   
   B <- exp(gamma)               # transformation of coefficients
-  mu <- pmax(X %*% B, 1e-15)    # expected deaths, avoiding zero
+  mu <- pmax(X %*% B)           # expected deaths
 
   # Gradient of the weighted log-likelihood
   F_value <- diag(as.vector(w * (y/mu - 1))) %*% X %*% diag(B) 
@@ -394,11 +393,17 @@ pnll_grad_w <- function(y, gamma, X, S, lambda, w){
   return(pnll_grad)
 }
 
-# Bootstrap resampling and refitting
+# -- Bootstrap resampling and refitting
 
+
+# Number of bootstrap replicates for uncertainty estimation
+n_bootstrap <- 200
+
+# Initialise empty matrix to store bootstrap replicates
+#   Each column represents a different bootstrap sample
+#   Each row represents f(t) at a specific time point across all bootstrap samples
 f_hat_boot <- matrix(0, nrow = nrow(X_tilde), ncol = n_bootstrap)
 
-initial_gamma = gamma
 
 for (b in 1:n_bootstrap) {
   
@@ -406,15 +411,15 @@ for (b in 1:n_bootstrap) {
   wb <- tabulate(sample(n, replace = TRUE), n)
   
   # Fit penalized model using bootstrap weights
-  fit_b <- optim(par = initial_gamma,  # initial parameter values
+  fit_b <- optim(par = gamma,          # initial parameter values
                fn = pnll_w,            # weighted penalized negative log-likelihood
                gr = pnll_grad_w,       # gradient function for efficient optimization
                y = y,                  # observed death counts
                X = X,                  # convolution matrix
-               S = S,                 # penalty matrix
-               lambda = lambda_bic,   # initial smoothing parameter
-               method = "BFGS",       # Quasi-Newton optimization method with gradient
-               w = wb)                # weights for this iteration
+               S = S,                  # penalty matrix
+               lambda = lambda_bic,    # initial smoothing parameter
+               method = "BFGS",        # Quasi-Newton optimization method with gradient
+               w = wb)                 # weights for this iteration
 
   # Extract fitted parameters from bootstrap sample
   gamma_b <- fit_b$par
@@ -423,7 +428,7 @@ for (b in 1:n_bootstrap) {
   # Compute infection rate estimate for this bootstrap sample
   f_hat_boot[, b] <- X_tilde %*% B_b
   
-  inital_gamma <- gamma_b 
+  gamma <- gamma_b 
 }
 
 
@@ -431,14 +436,20 @@ for (b in 1:n_bootstrap) {
 
 ## --- Summary statistics from the bootstrap distribution --- ##
 # Mean infection curve across bootstrap samples
-f_hat_mean <- rowMeans(f_hat_boot) 
+#f_hat_mean <- rowMeans(f_hat_boot) 
 f_hat_lower <- apply(f_hat_boot, 1, quantile, probs = 0.025) # 2.5% quantile
 f_hat_upper <- apply(f_hat_boot, 1, quantile, probs = 0.975) # 97.5% quantile
 
-# Define time sequence for infection function f(t)
-lower_bound <- min(data$julian) - 30
-upper_bound <- max(data$julian)
-f_seq <- seq(lower_bound, upper_bound, by=1)
+# Re-fit infections with lambda_bic
+fit <- optim(par = gamma, 
+             fn = pnll,
+             gr = pnll_grad,
+             y = y, X = X, S = S, 
+             lambda = lambda_bic, 
+             method = "BFGS")
+gamma_hat <- fit$par
+B_hat <- exp(gamma_hat)
+fitted_infections_optimized <- as.vector(X_tilde %*% B_hat)
 
 # Create data frame for infection curve with confidence intervals
 plot_df_6 <- data.frame(
@@ -452,33 +463,22 @@ plot_df_6 <- data.frame(
 #   Observed death data
 #   Model with fitted deaths
 #   Estimated infection curve
+
 final_plot <- ggplot() +
-  # Observed deaths
+  # True deaths
   geom_line(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths"), size = 0.8) +
-  
   # Fitted deaths
   geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), size = 0.8) +
-  
   # Daily infection rate with 95% CI
-  geom_ribbon(aes(x = f_seq, ymin = f_hat_lower, ymax = f_hat_upper), 
-              fill = "blue", alpha = 0.2) +
-  # Mean infection curve
-  geom_line(aes(x = f_seq, y = f_hat_mean, color = "Daily Infections"), size = 0.8) +
-  
-  # Axes 
-  scale_x_continuous(
-    name = "Day of 2020",
-    breaks = seq(0, 400, by = 50)  # Every 50 days from 0 to 400
-  ) +
-  scale_y_continuous(
-    name = "Number of Deaths",
-    breaks = scales::extended_breaks(n = 15) 
-  ) +
-  
-  # Plot labels
+  geom_ribbon(aes(x = f_seq, ymin = f_hat_lower, ymax = f_hat_upper), fill = "blue", alpha = 0.2) +
+  geom_line(aes(x = f_seq, y = fitted_infections_optimized, color = "Daily Infections"), size = 0.8) +
+  # Secondary axis: rescale infections to match the main axis numerically
+  #scale_y_continuous(
+  #  name = "Number of Deaths",
+  #  sec.axis = sec_axis(~ ., name = "Daily New Infections")
+  #) +
   labs(
     x = "Day of 2020",
-    y = "Count",
     color = "Legend",
     title = "Observed & Fitted Deaths with Daily Infections (95% CI)",
     subtitle = "Infection curve shows estimated daily new infections that 
@@ -486,8 +486,8 @@ final_plot <- ggplot() +
   ) +
   theme_minimal()
 
-
 final_plot
+
 # Interpretation:
 # A we can see in the graph the close match between the observed and fitted deaths 
 # demonstrates that our model successfully finds the mortality parameter in our data, 
