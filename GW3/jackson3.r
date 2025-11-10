@@ -1,6 +1,8 @@
 
 # 1.
 
+set.seed(3)
+
 library(splines)
 library(ggplot2)
 
@@ -97,7 +99,6 @@ pnll <- function(y, gamma, X, S, lambda) {
 }
 
 
-
 pnll_grad <- function(y, gamma, X, S, lambda){
   B <- exp(gamma)
   # derivative of the penalty term
@@ -114,19 +115,16 @@ pnll_grad <- function(y, gamma, X, S, lambda){
 }
 
 
-# example:
-gamma <- rpois(80, 0.2)
-lambda <- 0.5
-
+# test with same values for gamma
+lambda <- 5*10^-5
+k <- 80
+# gamma <- rep(log(mean(data$deaths)/k), k)
+gamma <- rep(0,k)
 y <- data$deaths
 # testing penalised neg. log likelihood and its gradient
 pnll(y, gamma, X, S, lambda)
 pnll_grad(y, gamma, X, S, lambda)
 
-
-gamma <- rpois(80, 0.2)
-lambda <- 0.5
-y <- data$deaths
 th0 <- gamma  # test paramater vector
 fd <- numeric(length(th0)) # approx grad vec
 nll0 <- pnll(y = y, gamma = th0, X = X, S = S, lambda = lambda) # pnll at th0
@@ -143,17 +141,17 @@ cbind(fd, grad_test) # compare to check pnll_grad is code correctly
 
 max(abs(grad_test-fd)) # find max difference - very small difference, so the code looks good!
 
-
-
 # 3.
 
+# need to define f_seq outside the function from part 1
+lower_bound <- min(data$julian) - 30; upper_bound <- max(data$julian); f_seq <- seq(lower_bound, upper_bound, by=1)
 
 # fit the model using BFGS
-fit <- optim(par = gamma,
+fit <- optim(gamma, # ??!! not sure if I should be using gamma we defined earlier. Might have been chosen incorrectly
              fn = pnll,
              gr = pnll_grad,
              y = y, X = X, S = S, 
-             lambda = (5*10^-5), 
+             lambda = lambda, 
              method = "BFGS")
 
 # compute fitted deaths
@@ -162,29 +160,32 @@ gamma_hat <- fit$par
 B_hat <- exp(gamma_hat)
 # compute fitted deaths (Poisson means)
 fitted_deaths <- as.vector(X %*% B_hat)
+fitted_infections <- as.vector(X_tilde %*% B_hat)
 true_deaths <- data$deaths
 day_of_2020 <- data$julian
 
-# combine into data frame
-plot_df <- data.frame(
-  day = day_of_2020,
-  true_deaths = true_deaths,
-  fitted_deaths = fitted_deaths)
-
-ggplot(plot_df, aes(x = day)) +
-  geom_line(aes(y = true_deaths, color = "Observed"), size = .7) +
-  geom_line(aes(y = fitted_deaths, color = "Fitted"), size = .7) +
-  labs(x = "Day of 2020",
-       y = "Number of Deaths",
-       title = "Observed vs Fitted Deaths Over Time",
-       color = "Legend") +
+ggplot() +
+  # True deaths
+  geom_line(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths"), size = 0.8) +
+  # Fitted deaths
+  geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), size = 0.8) +
+  geom_line(aes(x = f_seq, y = fitted_infections, color = "Daily Infections"), size = 0.8) +
+  # Secondary axis
+  scale_y_continuous(
+    name = "Number of Deaths",
+    sec.axis = sec_axis(~ ., name = "Daily New Infections")
+  ) +
+  labs(
+    x = "Day of 2020",
+    color = "Legend",
+    title = "Observed & Fitted Deaths with Daily Infections (95% CI)"
+  ) +
   theme_minimal()
-
 
 # 4.
 
 # function to define log likelihood for use in BIC criterion calculation
-ll <- function(y, beta_hat, X, S, lambda) {
+ll <- function(y, beta_hat, X) {
   # define mu
   mu <- X %*% beta_hat
   # define poisson log likelihood (use lfactorial to avoid numeric instability)
@@ -209,10 +210,9 @@ for (i in 1:length(lambda_seq)){
     gr = pnll_grad,     # using pnll_grad as gradient of function
     method = "BFGS",
     y=y,                # inputs for pnll and pnll_grad
-    X = X,              # "
-    S = S,              # "
-    lambda = lambda    # "
-    # control = list(maxit = 1000) # not sure why you are using this line here !!
+    X = X,            
+    S = S,              
+    lambda = lambda
   )
   # define beta_par
   beta_par <- exp(fit$par)
@@ -224,12 +224,10 @@ for (i in 1:length(lambda_seq)){
   H_lambda <- H0 + lambda*S
   
   # find effective degrees of freedom of the model
-  H_invH0 <- solve(H_lambda, H0) 
+  H_invH0 <- solve(H_lambda, H0)
   EDF <- sum(diag(H_invH0))
-  # n <- length(y) # length(y) doesnt change so define outside of loop !!
-  
   # BIC criterion
-  BIC[i] <- -2*ll(y, beta_par, X, S, lambda) + log(n)*EDF
+  BIC[i] <- -2*ll(y, beta_par, X) + log(n)*EDF
 }
 
 # minimised BIC criterion
@@ -261,6 +259,8 @@ pnll_w <- function(y, gamma, X, S, lambda, w) {
   return(pnll)
 }
 
+
+
 # update previous pnll_grad function to include weights
 pnll_grad_w <- function(y, gamma, X, S, lambda, w){
   B <- exp(gamma)
@@ -276,6 +276,7 @@ pnll_grad_w <- function(y, gamma, X, S, lambda, w){
   pnll_grad <- -ll_pois_grad + penalty_grad
   return(pnll_grad)
 }
+
 
 # perform the bootstrapping
 for (b in 1:n_bootstrap) {
@@ -300,19 +301,20 @@ for (b in 1:n_bootstrap) {
 
 # 6
 
-f_hat_mean <- rowMeans(f_hat_boot) # obtain average f_hat across replicates for each time period
 f_hat_lower <- apply(f_hat_boot, 1, quantile, probs = 0.025) # obtain 2.5% quantity of f_hat_boot
 f_hat_upper <- apply(f_hat_boot, 1, quantile, probs = 0.975) # obtain 97.5% quantile of f_hat_boot
-# need to define f_seq outside the function from part 1
-lower_bound <- min(data$julian) - 30; upper_bound <- max(data$julian); f_seq <- seq(lower_bound, upper_bound, by=1)
 
-# Combine bootstrap results into a data frame
-plot_df_6 <- data.frame(
-  day = f_seq, # days corresponding to X_tilde
-  f_mean = f_hat_mean,
-  f_lower = f_hat_lower,
-  f_upper = f_hat_upper
-)
+# Re-fit infections with lambda_bic
+fit <- optim(par = gamma, # ??!! not sure if I should be using gamma we defined earlier. Might have been chosen incorrectly
+             fn = pnll,
+             gr = pnll_grad,
+             y = y, X = X, S = S, 
+             lambda = lambda_bic, 
+             method = "BFGS")
+gamma_hat <- fit$par
+B_hat <- exp(gamma_hat)
+fitted_infections_optimized <- as.vector(X_tilde %*% B_hat)
+
 
 ggplot() +
   # True deaths
@@ -321,7 +323,7 @@ ggplot() +
   geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), size = 0.8) +
   # Daily infection rate with 95% CI
   geom_ribbon(aes(x = f_seq, ymin = f_hat_lower, ymax = f_hat_upper), fill = "blue", alpha = 0.2) +
-  geom_line(aes(x = f_seq, y = f_hat_mean, color = "Daily Infections"), size = 0.8) +
+  geom_line(aes(x = f_seq, y = fitted_infections_optimized, color = "Daily Infections"), size = 0.8) +
   # Secondary axis: rescale infections to match the main axis numerically
   scale_y_continuous(
     name = "Number of Deaths",
@@ -333,9 +335,6 @@ ggplot() +
     title = "Observed & Fitted Deaths with Daily Infections (95% CI)"
   ) +
   theme_minimal()
-
-
-
 
 
 
