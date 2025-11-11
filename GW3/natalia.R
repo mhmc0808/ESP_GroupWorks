@@ -442,8 +442,8 @@ f_hat_upper <- apply(f_hat_boot, 1, quantile, probs = 0.975) # 97.5% quantile
 
 # Re-fit infections with the optimal lambda selected using BIC
 fit <- optim(par = gamma,            # initial parameter values  #### ??!! not sure about this gamma
-             fn = pnll_w,            # weighted penalized negative log-likelihood
-             gr = pnll_grad_w,       # gradient function for efficient optimization
+             fn = pnll,            # weighted penalized negative log-likelihood
+             gr = pnll_grad,       # gradient function for efficient optimization
              y = y,                  # observed death counts
              X = X,                  # convolution matrix
              S = S,                  # penalty matrix
@@ -522,3 +522,4 @@ final_plot  # display final plot
 # - changed last plot --> error when running jackson's plots
 # - need to check if we can optimize lambda loop and bootstrap loop 
 # My code runs in ~ 50 sec
+
