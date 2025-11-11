@@ -274,13 +274,13 @@ ll <- function(y, beta_hat, X) {
   #   y - vector of observed death counts
   #   beta_hat - vector of estimated B-spline coefficients
   #   X - convolution design matrix
-                                                                                 # MAX: INSTRUCTIONS SAY WE CAN DROP LFACTORIAL HERE AS PARAMETER IS INDEPENDENT OF IT (says in footer page 2)
+                                                                                 # MAX: WE DONT DROP LFACTORIAL(y) HERE AS ITS USED DIRECTLY IN GRIDSEARCH FOR DETERMINE VALUE
  
   # Expected deaths under current parameters
   mu <- X %*% beta_hat
   
   # Poisson log likelihood 
-  ll_pois <- sum(y*log(mu) - mu)
+  ll_pois <- sum(y*log(mu) - mu - lfactorial(y))
   return(ll_pois)
 }
 
@@ -334,13 +334,12 @@ for (i in seq_along(lambda_seq)){                                               
 }
 
 
+
 # Find optimal lambda that minimizes BIC
 BIC_min <- min(BIC)
 BIC_min                                                                          # MAX: When I do it with gamma_hat, BIC changes from 1203 to 1199... so better? Is this okay? 
 lambda_bic <- lambda_seq[which.min(BIC)]
 lambda_bic
-
-
 
 
 
@@ -461,7 +460,6 @@ fit <- optim(par = gamma,            # initial parameter values  #### ??!! not s
 
 # Optimised parameters
 gamma_hat <- fit$par
-gamma_hat
 B_hat <- exp(gamma_hat)   # transform to original scale
 
 fitted_deaths <- as.vector(X %*% B_hat)                                          # MAX: ADDED THIS LINE IN. DON'T WE WANT TO RECOMPUTE FITTED_DEATHS NOW WITH LAMBDA BIC?
@@ -480,7 +478,7 @@ final_plot <- ggplot() +
   # Fitted deaths
   geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), size = 0.8) +
   # Daily infection rate with 95% CI
-  geom_ribbon(aes(x = f_seq, ymin = f_hat_lower, ymax = f_hat_upper), fill = "blue", alpha = 0.2) +
+  geom_ribbon(aes(x = f_seq, ymin = f_hat_int[1], ymax = f_hat_int[2]), fill = "blue", alpha = 0.2) +
   geom_line(aes(x = f_seq, y = fitted_infections_optimized, color = "Daily Infections"), size = 0.8) +
   # Secondary axis: rescale infections to match the main axis numerically
   scale_y_continuous(
@@ -534,8 +532,3 @@ final_plot  # display final plot
 # - changed last plot --> error when running jackson's plots
 # - need to check if we can optimize lambda loop and bootstrap loop 
 # My code runs in ~ 50 sec
-
-
-# In order to make this more efficient, we will need to find more efficient
-# ways to perform matrix multiplication for finding EDF and also look back
-# on loglik, pnll and pnll_grad functions and focus on optimisation.
