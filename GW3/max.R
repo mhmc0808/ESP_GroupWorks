@@ -260,7 +260,7 @@ initial_plot <- ggplot() +
     title = "Observed & Fitted Deaths with Daily Infections (95% CI)"
   ) +
   theme_minimal()
-
+  
 initial_plot
 
 ######### SMOOTHING PARAMETER SELECTION ##########
@@ -348,7 +348,6 @@ lambda_bic
 # For bootstrap resamples, each observation contributes proportionally to the
 # weights of the Pnll and its gradient, so we need to modify both
 
-
 # Weighted version of penalized negative log-likelihood for bootstrap
 pnll_w <- function(y, gamma, X, S, lambda, w) {
   
@@ -368,7 +367,7 @@ pnll_w <- function(y, gamma, X, S, lambda, w) {
   penalty <- 1/2*lambda* sum(B*(S %*% B))   # OPTIMISED VERSION
 
   # Weighted Poisson log-likelihood
-  ll_pois <- sum(w * (y*log(mu) - mu))                                           # MAX: INSTRUCTIONS SAY WE CAN DROP LFACTORIAL HERE AS PARAMETER IS INDEPENDENT OF IT (says in footer page 2)
+  ll_pois <- sum(w * (y*log(mu) - mu))                                            # MAX: INSTRUCTIONS SAY WE CAN DROP LFACTORIAL HERE AS PARAMETER IS INDEPENDENT OF IT (says in footer page 2)
   
   # Penalized negative log-likelihood with weights
   pnll <- -ll_pois + penalty
@@ -416,6 +415,8 @@ n_bootstrap <- 200
 f_hat_boot <- matrix(0, nrow = nrow(X_tilde), ncol = n_bootstrap)
 
 
+
+
 for (b in 1:n_bootstrap) {
   
   # Generate bootstrap weights 
@@ -430,7 +431,8 @@ for (b in 1:n_bootstrap) {
                S = S,                  # penalty matrix
                lambda = lambda_bic,    # initial smoothing parameter
                method = "BFGS",        # Quasi-Newton optimization method with gradient
-               w = wb)                 # weights for this iteration
+               w = wb,
+               control = list(maxit=1000, reltol = 1e-8))                 # weights for this iteration
 
   # Extract fitted parameters from bootstrap sample
   gamma_b <- fit_b$par
@@ -439,6 +441,8 @@ for (b in 1:n_bootstrap) {
   # Compute infection rate estimate for this bootstrap sample
   f_hat_boot[, b] <- X_tilde %*% B_b
 }
+
+f_hat_boot
 
 
 ######### FINAL VISUALIZATION AND RESULTS #########
@@ -478,7 +482,7 @@ final_plot <- ggplot() +
   # Fitted deaths
   geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), size = 0.8) +
   # Daily infection rate with 95% CI
-  geom_ribbon(aes(x = f_seq, ymin = f_hat_int[1], ymax = f_hat_int[2]), fill = "blue", alpha = 0.2) +
+  geom_ribbon(aes(x = f_seq, ymin = f_hat_int[1,], ymax = f_hat_int[2,]), fill = "blue", alpha = 0.2) +
   geom_line(aes(x = f_seq, y = fitted_infections_optimized, color = "Daily Infections"), size = 0.8) +
   # Secondary axis: rescale infections to match the main axis numerically
   scale_y_continuous(
