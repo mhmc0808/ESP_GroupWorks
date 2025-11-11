@@ -146,7 +146,7 @@ pnll_grad <- function(y, gamma, X, S, lambda){
   #   S - penalty matrix
   #   lambda - smoothing parameter
   
-  B <- exp(gamma)
+  B <- exp(gamma)                     # transform to original scale
   mu <- pmax(X %*% B)                 # expected deaths
   
   # Gradient of log-likelihood: dl/dgamma = colsums of diag(y_i/mu_i - 1)*X*diag(B)
@@ -218,12 +218,12 @@ fit <- optim(par = gamma,         # initial parameter values
              y = y,               # observed death counts
              X = X,               # convolution matrix
              S = S,               # penalty matrix
-             lambda = lambda,  # initial smoothing parameter
-             method = "BFGS")     # Quasi-Newton optimization method with gradient
+             lambda = lambda,     # initial smoothing parameter
+             method = "BFGS")     # Optimization method 
 
 # Extract estimated parameters after optimization
 gamma_hat <- fit$par
-B_hat <- exp(gamma_hat)
+B_hat <- exp(gamma_hat)           # transform to original scale
 
 # Compute fitted deaths and fitted infections
 fitted_deaths <- as.vector(X %*% B_hat)
@@ -283,7 +283,7 @@ ll <- function(y, beta_hat, X, lfly) {
 
 # Define sequence of lambda values to test
 log_lambda_seq <- seq(-13,-7,length=50)
-lambda_seq <- exp(log_lambda_seq)    # convert to actual lambda values
+lambda_seq <- exp(log_lambda_seq)    # transform to original scale
 
 BIC <- numeric(length(lambda_seq))   # initialize BIC storage vector
 
@@ -306,7 +306,7 @@ for (i in seq(lambda_seq)){
                method = "BFGS")       # Optimization method
             
   # Extract estimated parameters
-  beta_par <- exp(fit$par)
+  beta_par <- exp(fit$par)            # transform to original scale
   mu_hat <- as.vector(X %*% beta_par)
   
   # Weight vector
@@ -378,7 +378,7 @@ pnll_grad_w <- function(y, gamma, X, S, lambda, w){
   #   lambda - smoothing parameter
   #   w - vector of bootstrap weights 
   
-  B <- exp(gamma)               # transformation of coefficients
+  B <- exp(gamma)               # transform to original scale
   mu <- pmax(X %*% B)           # expected deaths
 
   # Gradient of the weighted log-likelihood
@@ -423,7 +423,7 @@ for (b in 1:n_bootstrap) {
 
   # Extract fitted parameters from bootstrap sample
   gamma_b <- fit_b$par
-  B_b <- exp(gamma_b)
+  B_b <- exp(gamma_b)     # transform to original scale
   
   # Compute infection rate estimate for this bootstrap sample
   f_hat_boot[, b] <- X_tilde %*% B_b
@@ -435,31 +435,29 @@ for (b in 1:n_bootstrap) {
 ######### FINAL VISUALIZATION AND RESULTS #########
 
 ## --- Summary statistics from the bootstrap distribution --- ##
-# Mean infection curve across bootstrap samples
-#f_hat_mean <- rowMeans(f_hat_boot) 
+
+# 95% Confidence intervals from bootstrap samples
 f_hat_lower <- apply(f_hat_boot, 1, quantile, probs = 0.025) # 2.5% quantile
 f_hat_upper <- apply(f_hat_boot, 1, quantile, probs = 0.975) # 97.5% quantile
 
-# Re-fit infections with lambda_bic
-fit <- optim(par = gamma, 
-             fn = pnll,
-             gr = pnll_grad,
-             y = y, X = X, S = S, 
-             lambda = lambda_bic, 
-             method = "BFGS")
+# Re-fit infections with the optimal lambda selected using BIC
+fit <- optim(par = gamma,            # initial parameter values  #### ??!! not sure about this gamma
+             fn = pnll_w,            # weighted penalized negative log-likelihood
+             gr = pnll_grad_w,       # gradient function for efficient optimization
+             y = y,                  # observed death counts
+             X = X,                  # convolution matrix
+             S = S,                  # penalty matrix
+             lambda = lambda_bic,    # initial smoothing parameter
+             method = "BFGS")        # Optimization method 
+
+# Optimised parameters
 gamma_hat <- fit$par
-B_hat <- exp(gamma_hat)
+B_hat <- exp(gamma_hat)   # transform to original scale
+
+# Fitted infection curve using the optimised parameters
 fitted_infections_optimized <- as.vector(X_tilde %*% B_hat)
 
-# Create data frame for infection curve with confidence intervals
-plot_df_6 <- data.frame(
-  day = f_seq,               # Day of year for infection estimates
-  f_mean = f_hat_mean,       # Mean across bootstraps
-  f_lower = f_hat_lower,     # Lower bound of 95% confidence interval
-  f_upper = f_hat_upper     # Upper bound of 95% confidence interval
-)
-
-# Final plot showing:
+## --- Final plot showing --- ##
 #   Observed death data
 #   Model with fitted deaths
 #   Estimated infection curve
@@ -473,10 +471,10 @@ final_plot <- ggplot() +
   geom_ribbon(aes(x = f_seq, ymin = f_hat_lower, ymax = f_hat_upper), fill = "blue", alpha = 0.2) +
   geom_line(aes(x = f_seq, y = fitted_infections_optimized, color = "Daily Infections"), size = 0.8) +
   # Secondary axis: rescale infections to match the main axis numerically
-  #scale_y_continuous(
-  #  name = "Number of Deaths",
-  #  sec.axis = sec_axis(~ ., name = "Daily New Infections")
-  #) +
+  scale_y_continuous(
+    name = "Number of Deaths",
+    sec.axis = sec_axis(~ ., name = "Daily New Infections")
+  ) +
   labs(
     x = "Day of 2020",
     color = "Legend",
@@ -486,7 +484,7 @@ final_plot <- ggplot() +
   ) +
   theme_minimal()
 
-final_plot
+final_plot  # display final plot
 
 # Interpretation:
 # A we can see in the graph the close match between the observed and fitted deaths 
