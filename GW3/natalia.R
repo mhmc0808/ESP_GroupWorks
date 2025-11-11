@@ -427,8 +427,7 @@ for (b in 1:n_bootstrap) {
   
   # Compute infection rate estimate for this bootstrap sample
   f_hat_boot[, b] <- X_tilde %*% B_b
-  
-  gamma <- gamma_b 
+
 }
 
 
@@ -522,4 +521,5 @@ final_plot  # display final plot
 # - changed last plot --> error when running jackson's plots
 # - need to check if we can optimize lambda loop and bootstrap loop 
 # My code runs in ~ 50 sec
+
 
