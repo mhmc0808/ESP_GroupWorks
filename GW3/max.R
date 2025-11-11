@@ -7,6 +7,8 @@
 # Max focused on ---
 # Natalia focused on ---
 
+
+
 # Link to github repo: https://github.com/mhmc0808/ESP_GroupWorks.git
 # Note about github repo: Our group used the same repo for the other projects.
 # The code for project 3 can be found in the GW3 folder, and is titled proj3.r
@@ -339,7 +341,7 @@ for (i in seq_along(lambda_seq)){                                               
 BIC_min <- min(BIC)
 BIC_min                                                                          # MAX: When I do it with gamma_hat, BIC changes from 1203 to 1199... so better? Is this okay? 
 lambda_bic <- lambda_seq[which.min(BIC)]
-lambda_bic
+lambda_bic <- 6.969175e-05
 
 
 
@@ -415,7 +417,7 @@ n_bootstrap <- 200
 f_hat_boot <- matrix(0, nrow = nrow(X_tilde), ncol = n_bootstrap)
 
 
-
+set.seed(123) # seed to ensure bootstrapping reproducibility
 
 for (b in 1:n_bootstrap) {
   
@@ -423,7 +425,7 @@ for (b in 1:n_bootstrap) {
   wb <- tabulate(sample(n, replace = TRUE), n)
   
   # Fit penalized model using bootstrap weights
-  fit_b <- optim(par = gamma,          # initial parameter values
+  fit_b <- optim(par = gamma,          # initial parameter values                # MAX: I guess if we're using gamma_hat as starting point for red line, it makes sense to use it here too?
                fn = pnll_w,            # weighted penalized negative log-likelihood
                gr = pnll_grad_w,       # gradient function for efficient optimization
                y = y,                  # observed death counts
@@ -431,8 +433,7 @@ for (b in 1:n_bootstrap) {
                S = S,                  # penalty matrix
                lambda = lambda_bic,    # initial smoothing parameter
                method = "BFGS",        # Quasi-Newton optimization method with gradient
-               w = wb,
-               control = list(maxit=1000, reltol = 1e-8))                 # weights for this iteration
+               w = wb)                 # weights for this iteration
 
   # Extract fitted parameters from bootstrap sample
   gamma_b <- fit_b$par
@@ -453,9 +454,9 @@ f_hat_boot
 f_hat_int <- apply(f_hat_boot, 1, quantile, probs = c(0.025, 0.975)) # 2.5% and 97.5% quantile                 # MAX: COMPILED LOWER AND UPPER BOUND INTO ONE CALL OF APPLY
 
 # Re-fit infections with the optimal lambda selected using BIC
-fit <- optim(par = gamma,            # initial parameter values  #### ??!! not sure about this gamma
-             fn = pnll,            # weighted penalized negative log-likelihood
-             gr = pnll_grad,       # gradient function for efficient optimization
+fit <- optim(par = gamma,            # initial parameter values                  #MAX: Changed such that the gamma is initialised as optimised gamma hat from Q3 (still not sure about it)
+             fn = pnll,              # weighted penalized negative log-likelihood
+             gr = pnll_grad,         # gradient function for efficient optimization
              y = y,                  # observed death counts
              X = X,                  # convolution matrix
              S = S,                  # penalty matrix
@@ -467,7 +468,6 @@ gamma_hat <- fit$par
 B_hat <- exp(gamma_hat)   # transform to original scale
 
 fitted_deaths <- as.vector(X %*% B_hat)                                          # MAX: ADDED THIS LINE IN. DON'T WE WANT TO RECOMPUTE FITTED_DEATHS NOW WITH LAMBDA BIC?
-
 # Fitted infection curve using the optimised parameters
 fitted_infections_optimized <- as.vector(X_tilde %*% B_hat)
 
@@ -535,4 +535,6 @@ final_plot  # display final plot
 #   the weights and the right lambda
 # - changed last plot --> error when running jackson's plots
 # - need to check if we can optimize lambda loop and bootstrap loop 
-# My code runs in ~ 50 sec
+
+
+# My code runs in ~ 40 secs
