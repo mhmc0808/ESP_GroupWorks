@@ -20,14 +20,10 @@
 # trajectory by deconvolving death counts with a delay distribution from infection
 # to death. 
 
-#install.packages("ggplot2")
-
-
 #setwd("C:/Users/Max McCourt/OneDrive/Documents/Master's Year/Semester 1/ESP/Group Works/GW3")
 library(splines)
 library(ggplot2)
 data <- read.table("engcov.txt")
-
 
 
 set.seed(3)  # remove
@@ -126,13 +122,13 @@ pnll <- function(y, gamma, X, S, lambda) {
   #   lambda - smoothing parameter
 
   B <- exp(gamma)               # transformation of coefficients
-  mu <- X %*% B                 # expected deaths                                
+  mu <- X %*% B                 # expected deaths
   
   # Smoothing penalty term
-  penalty <- 1/2*lambda * sum(B * (S %*% B))     # OPTIMISED VERSION
+  penalty <- 1/2*lambda * sum(B * (S %*% B))
   
   # Poisson log likelihood 
-  ll_pois <- sum(y*log(mu) - mu)                                                 # MAX: INSTRUCTIONS SAY WE CAN DROP LFACTORIAL HERE AS PARAMETER IS INDEPENDENT OF IT (says in footer page 2)
+  ll_pois <- sum(y*log(mu) - mu)
   
   # Penalised negative log likelihood
   pnll <- -ll_pois + penalty
@@ -151,7 +147,7 @@ pnll_grad <- function(y, gamma, X, S, lambda){
   #   lambda - smoothing parameter
   
   B <- exp(gamma)                     # transform to original scale
-  mu <- X %*% B                       # expected deaths                          
+  mu <- X %*% B                       # expected deaths
   
   # Gradient of log-likelihood: dl/dgamma = colsums of diag(y_i/mu_i - 1)*X*diag(B)
   F_value <- diag(as.vector(y/mu - 1)) %*% X %*% diag(B)            
@@ -168,8 +164,8 @@ pnll_grad <- function(y, gamma, X, S, lambda){
 
 
 ## --- Test functions --- ##
-y <- data$deaths
-lambda <- 5e-5                                                                   
+y <- data$nhs
+lambda <- 5e-5
 k <- 80
 gamma <- rep(0,k)
 pnll(y, gamma, X, S, lambda)
@@ -235,13 +231,13 @@ fitted_infections <- as.vector(X_tilde %*% B_hat)
 
 
 # Compare with actual data
-true_deaths <- data$deaths        # actual deaths from data set
+true_deaths <- data$nhs       # actual deaths from data set
 day_of_2020 <- data$julian
 
 # Comparison plot: observed vs fitted deaths
 initial_plot <- ggplot() +
   # True deaths
-  geom_line(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths"), linewidth = 0.8) +
+  geom_point(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths"), linewidth = 0.8) +
   # Fitted deaths
   geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), linewidth = 0.8) +
   geom_line(aes(x = f_seq, y = fitted_infections, color = "Daily Infections"), linewidth = 0.8) +
@@ -249,9 +245,15 @@ initial_plot <- ggplot() +
     x = "Day of 2020",
     y = "Counts",
     color = "Legend",
-    title = "Observed & Fitted Deaths with Daily Infections"
+    title = "Observed & Fitted Deaths with Daily Infections (Sanity Check)"
   ) +
-  scale_x_continuous(breaks = seq(0, max(f_seq), by = 20)) + # add more x-ticks
+  scale_color_manual( # manually assign colors
+    values = c(
+      "Observed Deaths" = "black",
+      "Fitted Deaths" = "red",
+      "Daily Infections" = "blue"
+    )
+  ) +
   theme_minimal()
   
 initial_plot
@@ -273,7 +275,7 @@ ll <- function(y, beta_hat, X) {
   mu <- X %*% beta_hat
   
   # Poisson log likelihood 
-  ll_pois <- sum(y*log(mu) - mu - lfactorial(y))
+  ll_pois <- sum(y*log(mu) - mu - lgamma(y+1))
   return(ll_pois)
 }
 
@@ -287,7 +289,8 @@ Xt <- t(X)  # transpose of X to save some time in the loop
 
 gamma_hat <- gamma
 # Grid search over lambda values to find optimal smoothing parameter
-for (i in seq_along(lambda_seq)){                                                
+for (i in seq_along(lambda_seq)){                                                # MAX: Changed seq() to seq_along() to make more robust (avoid seq taking from 1 to first element of lamdba_seq)
+  
   # Current lambda value
   lambda <- lambda_seq[i]
   
@@ -311,7 +314,8 @@ for (i in seq_along(lambda_seq)){
   
   # Compute Hessian matrices:
   # H0: Hessian of log-likelihood (without penalty)
-  H0 <- crossprod(X * sqrt(w))                                                  
+  H0 <- crossprod(X * sqrt(w))                                                   # MAX: Supposedly more efficient and saves memory when using crossprod instead (saves 0.6s over the entire gridsearch)
+  
   #  H_lambda: Full Hessian (log-likelihood + penalty)
   H_lambda <- H0 + lambda * S
   
@@ -350,13 +354,13 @@ pnll_w <- function(y, gamma, X, S, lambda, w) {
   #   w - vector of bootstrap weights 
   
   B <- exp(gamma)               # transformation of coefficients
-  mu <- X %*% B                 # expected deaths, avoiding zero                 
+  mu <- X %*% B                 # expected deaths, avoiding zero                 # MAX: Is this a safety net in case X %*% B has negative results? I checked our values and this should be impossible given properties of X and B, so maybe we should get rid of it? May look like we don't understand our variables (or like ChatGPT wrote it)
   
   # Smoothing penalty term
   penalty <- 1/2*lambda* sum(B*(S %*% B))   # OPTIMISED VERSION
 
   # Weighted Poisson log-likelihood
-  ll_pois <- sum(w * (y*log(mu) - mu))                                           # MAX: INSTRUCTIONS SAY WE CAN DROP LFACTORIAL HERE AS PARAMETER IS INDEPENDENT OF IT (says in footer page 2)
+  ll_pois <- sum(w * (y*log(mu) - mu))
   
   # Penalized negative log-likelihood with weights
   pnll <- -ll_pois + penalty
@@ -377,8 +381,8 @@ pnll_grad_w <- function(y, gamma, X, S, lambda, w){
   #   w - vector of bootstrap weights 
   
   B <- exp(gamma)               # transform to original scale
-  mu <- X %*% B                 # expected deaths                                
-  
+  mu <- X %*% B                 # expected deaths                                # MAX: Is this a safety net in case X %*% B has negative results? I checked our values and this should be impossible given properties of X and B, so maybe we should get rid of it? May look like we don't understand our variables (or like ChatGPT wrote it)
+
   # Gradient of the weighted log-likelihood
   F_value <- diag(as.vector(w * (y/mu - 1))) %*% X %*% diag(B) 
   ll_pois_grad <- colSums(F_value)
@@ -465,7 +469,7 @@ fitted_infections_optimized <- as.vector(X_tilde %*% B_hat)
 
 final_plot <- ggplot() +
   # True deaths
-  geom_line(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths"), size = 0.8) +
+  geom_point(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths"), size = 0.8) +
   # Fitted deaths
   geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), size = 0.8) +
   # Daily infection rate with 95% CI
@@ -475,11 +479,15 @@ final_plot <- ggplot() +
     x = "Day of 2020",
     y = "Counts",
     color = "Legend",
-    title = "Observed & Fitted Deaths with Daily Infections (95% CI)",
-    subtitle = "Infection curve shows estimated daily new infections that 
-    led to observed deaths"
+    title = "Observed & Fitted Deaths with Daily Infections (w/ 95% CI)"
   ) +
-  scale_x_continuous(breaks = seq(0, max(f_seq), by = 20)) +
+  scale_color_manual( # manually assign colors
+    values = c(
+      "Observed Deaths" = "black",
+      "Fitted Deaths" = "red",
+      "Daily Infections" = "blue"
+    )
+  ) +
   theme_minimal()
 
 final_plot  # display final plot
