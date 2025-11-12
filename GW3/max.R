@@ -341,7 +341,7 @@ for (i in seq_along(lambda_seq)){                                               
 BIC_min <- min(BIC)
 BIC_min                                                                          # MAX: When I do it with gamma_hat, BIC changes from 1203 to 1199... so better? Is this okay? 
 lambda_bic <- lambda_seq[which.min(BIC)]
-lambda_bic <- 6.969175e-05
+lambda_bic                                                                       # MAX: Note that lambda_bic is not the same here due to using gamma_hat (5.545e-05 instead of 6.969e-05)
 
 
 
@@ -369,7 +369,7 @@ pnll_w <- function(y, gamma, X, S, lambda, w) {
   penalty <- 1/2*lambda* sum(B*(S %*% B))   # OPTIMISED VERSION
 
   # Weighted Poisson log-likelihood
-  ll_pois <- sum(w * (y*log(mu) - mu))                                            # MAX: INSTRUCTIONS SAY WE CAN DROP LFACTORIAL HERE AS PARAMETER IS INDEPENDENT OF IT (says in footer page 2)
+  ll_pois <- sum(w * (y*log(mu) - mu))                                           # MAX: INSTRUCTIONS SAY WE CAN DROP LFACTORIAL HERE AS PARAMETER IS INDEPENDENT OF IT (says in footer page 2)
   
   # Penalized negative log-likelihood with weights
   pnll <- -ll_pois + penalty
