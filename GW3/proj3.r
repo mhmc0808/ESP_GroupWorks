@@ -25,9 +25,6 @@ library(splines)
 library(ggplot2)
 data <- read.table("engcov.txt")
 
-
-set.seed(3)  # remove
-
 ######### MODEL SET UP ##########
 
 # Define the matrices and components of the deconvolution model, the function 
@@ -212,7 +209,7 @@ print(paste("Maximum gradient difference:", round(max_diff,8)))
 # before proceeding with smoothing parameter selection.
 
 
-fit <- optim(par = gamma,         # initial parameter values                     # MAX (OTHER NOTES): Chat says this could be a little better with "control = list(maxit = 1000, reltol = 1e-8)" arguments
+fit <- optim(par = gamma,         # initial parameter values 
              fn = pnll,           # penalized negative log-likelihood
              gr = pnll_grad,      # gradient function for efficient optimization
              y = y,               # observed death counts
@@ -269,8 +266,7 @@ ll <- function(y, beta_hat, X) {
   #   y - vector of observed death counts
   #   beta_hat - vector of estimated B-spline coefficients
   #   X - convolution design matrix
-                                                                                 # MAX: WE DONT DROP LFACTORIAL(y) HERE AS ITS USED DIRECTLY IN GRIDSEARCH FOR DETERMINE VALUE
- 
+
   # Expected deaths under current parameters
   mu <- X %*% beta_hat
   
@@ -287,15 +283,14 @@ BIC <- numeric(length(lambda_seq))   # initialize BIC storage vector
 
 Xt <- t(X)  # transpose of X to save some time in the loop
 
-gamma_hat <- gamma
 # Grid search over lambda values to find optimal smoothing parameter
-for (i in seq_along(lambda_seq)){                                                # MAX: Changed seq() to seq_along() to make more robust (avoid seq taking from 1 to first element of lamdba_seq)
+for (i in seq_along(lambda_seq)){                                             
   
   # Current lambda value
   lambda <- lambda_seq[i]
   
   # Fit model with current lambda using BFGS optimization
-  fit <- optim(par = gamma,       # initial parameter values                 # MAX: Chat says we could use gamma_hat here instead to speed up grid search. If this is correct, we can save 10s of runtime!
+  fit <- optim(par = gamma_hat,       # initial parameter values
                fn = pnll,             # penalized negative log-likelihood
                gr = pnll_grad,        # gradient function
                y = y,                 # observed death counts
@@ -305,8 +300,7 @@ for (i in seq_along(lambda_seq)){                                               
                method = "BFGS")       # Optimization method
             
   # Extract estimated parameters
-  gamma_hat <- fit$par            # transform to original scale
-  beta_par <- exp(gamma_hat)
+  beta_par <- exp(fit$par)
   mu_hat <- as.vector(X %*% beta_par)
   
   # Weight vector
@@ -314,7 +308,8 @@ for (i in seq_along(lambda_seq)){                                               
   
   # Compute Hessian matrices:
   # H0: Hessian of log-likelihood (without penalty)
-  H0 <- crossprod(X * sqrt(w))                                                   # MAX: Supposedly more efficient and saves memory when using crossprod instead (saves 0.6s over the entire gridsearch)
+  H0 <- crossprod(X * sqrt(w))
+  
   
   #  H_lambda: Full Hessian (log-likelihood + penalty)
   H_lambda <- H0 + lambda * S
@@ -332,9 +327,9 @@ for (i in seq_along(lambda_seq)){                                               
 
 # Find optimal lambda that minimizes BIC
 BIC_min <- min(BIC)
-BIC_min                                                                          # MAX: When I do it with gamma_hat, BIC changes from 1203 to 1199... so better? Is this okay? 
+BIC_min                                                                        
 lambda_bic <- lambda_seq[which.min(BIC)]
-lambda_bic                                                                       # MAX: Note that lambda_bic is not the same here due to using gamma_hat (5.545e-05 instead of 6.969e-05)
+lambda_bic                                                                     
 
 
 ######### BOOTSTRAP UNCERTAINTY QUANTIFICATION #########
@@ -354,7 +349,7 @@ pnll_w <- function(y, gamma, X, S, lambda, w) {
   #   w - vector of bootstrap weights 
   
   B <- exp(gamma)               # transformation of coefficients
-  mu <- X %*% B                 # expected deaths, avoiding zero                 # MAX: Is this a safety net in case X %*% B has negative results? I checked our values and this should be impossible given properties of X and B, so maybe we should get rid of it? May look like we don't understand our variables (or like ChatGPT wrote it)
+  mu <- X %*% B                 # expected deaths, avoiding zero
   
   # Smoothing penalty term
   penalty <- 1/2*lambda* sum(B*(S %*% B))   # OPTIMISED VERSION
@@ -381,7 +376,7 @@ pnll_grad_w <- function(y, gamma, X, S, lambda, w){
   #   w - vector of bootstrap weights 
   
   B <- exp(gamma)               # transform to original scale
-  mu <- X %*% B                 # expected deaths                                # MAX: Is this a safety net in case X %*% B has negative results? I checked our values and this should be impossible given properties of X and B, so maybe we should get rid of it? May look like we don't understand our variables (or like ChatGPT wrote it)
+  mu <- X %*% B                 # expected deaths
 
   # Gradient of the weighted log-likelihood
   F_value <- diag(as.vector(w * (y/mu - 1))) %*% X %*% diag(B) 
@@ -408,7 +403,6 @@ n_bootstrap <- 200
 f_hat_boot <- matrix(0, nrow = nrow(X_tilde), ncol = n_bootstrap)
 
 
-# set.seed(123) # seed to ensure bootstrapping reproducibility
 
 for (b in 1:n_bootstrap) {
   
@@ -416,7 +410,7 @@ for (b in 1:n_bootstrap) {
   wb <- tabulate(sample(n, replace = TRUE), n)
   
   # Fit penalized model using bootstrap weights
-  fit_b <- optim(par = gamma,          # initial parameter values                # MAX: I guess if we're using gamma_hat as starting point for red line, it makes sense to use it here too?
+  fit_b <- optim(par = gamma_hat,          # initial parameter values
                fn = pnll_w,            # weighted penalized negative log-likelihood
                gr = pnll_grad_w,       # gradient function for efficient optimization
                y = y,                  # observed death counts
@@ -442,10 +436,10 @@ f_hat_boot
 ## --- Summary statistics from the bootstrap distribution --- ##
 
 # 95% Confidence intervals from bootstrap samples
-f_hat_int <- apply(f_hat_boot, 1, quantile, probs = c(0.025, 0.975)) # 2.5% and 97.5% quantile                 # MAX: COMPILED LOWER AND UPPER BOUND INTO ONE CALL OF APPLY
+f_hat_int <- apply(f_hat_boot, 1, quantile, probs = c(0.025, 0.975)) # 2.5% and 97.5% quantile
 
 # Re-fit infections with the optimal lambda selected using BIC
-fit <- optim(par = gamma,            # initial parameter values                  #MAX: Changed such that the gamma is initialised as optimised gamma hat from Q3 (still not sure about it)
+fit <- optim(par = gamma_hat,            # initial parameter values
              fn = pnll,              # weighted penalized negative log-likelihood
              gr = pnll_grad,         # gradient function for efficient optimization
              y = y,                  # observed death counts
@@ -458,7 +452,7 @@ fit <- optim(par = gamma,            # initial parameter values                 
 gamma_hat <- fit$par
 B_hat <- exp(gamma_hat)   # transform to original scale
 
-fitted_deaths <- as.vector(X %*% B_hat)                                          # MAX: ADDED THIS LINE IN. DON'T WE WANT TO RECOMPUTE FITTED_DEATHS NOW WITH LAMBDA BIC?
+fitted_deaths <- as.vector(X %*% B_hat)                                         
 # Fitted infection curve using the optimised parameters
 fitted_infections_optimized <- as.vector(X_tilde %*% B_hat)
 
@@ -513,4 +507,6 @@ final_plot  # display final plot
 # The overall visualization demonstrates successful deconvolution, we have effectively
 # recovered the unobserved infection trajectory from the observed death data using
 # the known delay distribution and smoothness assumptions.
+
+
 
