@@ -117,7 +117,7 @@ pnll <- function(y, gamma, X, S, lambda) {
   #   X - convolution matrix
   #   S - penalty matrix
   #   lambda - smoothing parameter
-
+  
   B <- exp(gamma)               # transformation of coefficients
   mu <- X %*% B                 # expected deaths
   
@@ -216,7 +216,8 @@ fit <- optim(par = gamma,         # initial parameter values
              X = X,               # convolution matrix
              S = S,               # penalty matrix
              lambda = lambda,     # initial smoothing parameter
-             method = "BFGS")     # Optimization method 
+             method = "BFGS",     # Optimization method 
+             control=list(maxit=1000, reltol=1e-8))        # ensure convergence
 
 # Extract estimated parameters after optimization
 gamma_hat <- fit$par
@@ -252,7 +253,7 @@ initial_plot <- ggplot() +
     )
   ) +
   theme_minimal()
-  
+
 initial_plot
 
 ######### SMOOTHING PARAMETER SELECTION ##########
@@ -266,7 +267,7 @@ ll <- function(y, beta_hat, X) {
   #   y - vector of observed death counts
   #   beta_hat - vector of estimated B-spline coefficients
   #   X - convolution design matrix
-
+  
   # Expected deaths under current parameters
   mu <- X %*% beta_hat
   
@@ -280,6 +281,7 @@ log_lambda_seq <- seq(-13,-7,length=50)
 lambda_seq <- exp(log_lambda_seq)    # transform to original scale
 
 BIC <- numeric(length(lambda_seq))   # initialize BIC storage vector
+gammas <- matrix(NA, nrow = length(lambda_seq), ncol=80)
 
 Xt <- t(X)  # transpose of X to save some time in the loop
 
@@ -297,10 +299,13 @@ for (i in seq_along(lambda_seq)){
                X = X,                 # convolution matrix
                S = S,                 # penalty matrix
                lambda = lambda,       # initial smoothing parameter
-               method = "BFGS")       # Optimization method
-            
+               method = "BFGS",       # Optimization method
+               control=list(maxit=1000, reltol=1e-8))       # ensure convergence 
+  
   # Extract estimated parameters
-  beta_par <- exp(fit$par)
+  gamma_i <- fit$par
+  gammas[i,] <- gamma_i
+  beta_par <- exp(gamma_i)
   mu_hat <- as.vector(X %*% beta_par)
   
   # Weight vector
@@ -309,7 +314,6 @@ for (i in seq_along(lambda_seq)){
   # Compute Hessian matrices:
   # H0: Hessian of log-likelihood (without penalty)
   H0 <- crossprod(X * sqrt(w))
-  
   
   #  H_lambda: Full Hessian (log-likelihood + penalty)
   H_lambda <- H0 + lambda * S
@@ -323,13 +327,11 @@ for (i in seq_along(lambda_seq)){
   BIC[i] <- -2*ll(y, beta_par, X) + log(n)*EDF
 }
 
-
-
-# Find optimal lambda that minimizes BIC
+# Find optimal lambda and gamma vector that minimises BIC
 BIC_min <- min(BIC)
-BIC_min                                                                        
-lambda_bic <- lambda_seq[which.min(BIC)]
-lambda_bic                                                                     
+lambda_bic <- lambda_seq[which(BIC==BIC_min)]
+gamma_bic <- gammas[which(BIC==BIC_min),]
+gamma_bic
 
 
 ######### BOOTSTRAP UNCERTAINTY QUANTIFICATION #########
@@ -353,7 +355,7 @@ pnll_w <- function(y, gamma, X, S, lambda, w) {
   
   # Smoothing penalty term
   penalty <- 1/2*lambda* sum(B*(S %*% B))   # OPTIMISED VERSION
-
+  
   # Weighted Poisson log-likelihood
   ll_pois <- sum(w * (y*log(mu) - mu))
   
@@ -377,7 +379,7 @@ pnll_grad_w <- function(y, gamma, X, S, lambda, w){
   
   B <- exp(gamma)               # transform to original scale
   mu <- X %*% B                 # expected deaths
-
+  
   # Gradient of the weighted log-likelihood
   F_value <- diag(as.vector(w * (y/mu - 1))) %*% X %*% diag(B) 
   ll_pois_grad <- colSums(F_value)
@@ -403,32 +405,29 @@ n_bootstrap <- 200
 f_hat_boot <- matrix(0, nrow = nrow(X_tilde), ncol = n_bootstrap)
 
 
-
 for (b in 1:n_bootstrap) {
   
   # Generate bootstrap weights 
   wb <- tabulate(sample(n, replace = TRUE), n)
   
-  # Fit penalized model using bootstrap weights
-  fit_b <- optim(par = gamma_hat,          # initial parameter values
-               fn = pnll_w,            # weighted penalized negative log-likelihood
-               gr = pnll_grad_w,       # gradient function for efficient optimization
-               y = y,                  # observed death counts
-               X = X,                  # convolution matrix
-               S = S,                  # penalty matrix
-               lambda = lambda_bic,    # initial smoothing parameter
-               method = "BFGS",        # Quasi-Newton optimization method with gradient
-               w = wb)                 # weights for this iteration
-
-  # Extract fitted parameters from bootstrap sample
-  gamma_b <- fit_b$par
-  B_b <- exp(gamma_b)     # transform to original scale
+  # Fit penalised model using bootstrap weights
+  fit_b <- optim(par = gamma_bic,        # initial parameter values
+                 fn = pnll_w,            # weighted penalized negative log-likelihood
+                 gr = pnll_grad_w,       # gradient function for efficient optimization
+                 y = y,                  # observed death counts
+                 X = X,                  # convolution matrix
+                 S = S,                  # penalty matrix
+                 lambda = lambda_bic,    # initial smoothing parameter
+                 method = "BFGS",        # Quasi-Newton optimization method with gradient
+                 w = wb,                 # weights for this iteration
+                 control=list(maxit=1000, reltol=1e-8))    # ensure convergence              
+  
+  # Extract fitted parameters from bootstrap sample and transform to exp scale
+  B_b <- exp(fit_b$par) 
   
   # Compute infection rate estimate for this bootstrap sample
   f_hat_boot[, b] <- X_tilde %*% B_b
 }
-
-f_hat_boot
 
 
 ######### FINAL VISUALIZATION AND RESULTS #########
@@ -438,23 +437,12 @@ f_hat_boot
 # 95% Confidence intervals from bootstrap samples
 f_hat_int <- apply(f_hat_boot, 1, quantile, probs = c(0.025, 0.975)) # 2.5% and 97.5% quantile
 
-# Re-fit infections with the optimal lambda selected using BIC
-fit <- optim(par = gamma_hat,            # initial parameter values
-             fn = pnll,              # weighted penalized negative log-likelihood
-             gr = pnll_grad,         # gradient function for efficient optimization
-             y = y,                  # observed death counts
-             X = X,                  # convolution matrix
-             S = S,                  # penalty matrix
-             lambda = lambda_bic,    # initial smoothing parameter
-             method = "BFGS")        # Optimization method 
+# exponentiate minimised BIC gamma vector to form beta hat
+B_bic_hat <- exp(gamma_bic)   
 
-# Optimised parameters
-gamma_hat <- fit$par
-B_hat <- exp(gamma_hat)   # transform to original scale
-
-fitted_deaths <- as.vector(X %*% B_hat)                                         
+fitted_deaths <- as.vector(X %*% B_bic_hat)                                         
 # Fitted infection curve using the optimised parameters
-fitted_infections_optimized <- as.vector(X_tilde %*% B_hat)
+fitted_infections_optimised <- as.vector(X_tilde %*% B_bic_hat)
 
 ## --- Final plot showing --- ##
 #   Observed death data
@@ -468,7 +456,7 @@ final_plot <- ggplot() +
   geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), size = 0.8) +
   # Daily infection rate with 95% CI
   geom_ribbon(aes(x = f_seq, ymin = f_hat_int[1,], ymax = f_hat_int[2,]), fill = "blue", alpha = 0.2) +
-  geom_line(aes(x = f_seq, y = fitted_infections_optimized, color = "Daily Infections"), size = 0.8) +
+  geom_line(aes(x = f_seq, y = fitted_infections_optimised, color = "Daily Infections"), size = 0.8) +
   labs(
     x = "Day of 2020",
     y = "Counts",
@@ -485,28 +473,3 @@ final_plot <- ggplot() +
   theme_minimal()
 
 final_plot  # display final plot
-
-# Interpretation:
-# A we can see in the graph the close match between the observed and fitted deaths 
-# demonstrates that our model successfully finds the mortality parameter in our data, 
-# providing confidence in the model to reconstruct infection dinamics.
-#
-# The blue infection curve shows the estimated daily new infections that resulted in
-# the observed deaths. We can clearly see the infection waves, showing when transmission
-# was increasing or decreasing, like a big increase around day 75 and a big 
-# decrease around day 85.
-#
-# The blue shaded region represents the 95% confidence interval around the infection
-# estimates, derived from 200 bootstrap replicates. Wider intervals indicate greater
-# uncertainty, particularly at the boundaries where data was limited.
-# 
-# The approximately 30-day horizontal shift that we assumed when creating the model
-# between infection peaks and corresponding death peaks visually confirms the 
-# lognormal delay distribution used in the model.
-#
-# The overall visualization demonstrates successful deconvolution, we have effectively
-# recovered the unobserved infection trajectory from the observed death data using
-# the known delay distribution and smoothness assumptions.
-
-
-
