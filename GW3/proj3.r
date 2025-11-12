@@ -126,7 +126,7 @@ pnll <- function(y, gamma, X, S, lambda) {
   #   lambda - smoothing parameter
 
   B <- exp(gamma)               # transformation of coefficients
-  mu <- X %*% B                 # expected deaths                                # MAX: Is pmax() a safety net in case X %*% B has negative results? I checked our values and this should be impossible given properties of X and B, so maybe we should get rid of it? May look like we don't understand our variables (or like ChatGPT wrote it)
+  mu <- X %*% B                 # expected deaths                                
   
   # Smoothing penalty term
   penalty <- 1/2*lambda * sum(B * (S %*% B))     # OPTIMISED VERSION
@@ -151,7 +151,7 @@ pnll_grad <- function(y, gamma, X, S, lambda){
   #   lambda - smoothing parameter
   
   B <- exp(gamma)                     # transform to original scale
-  mu <- X %*% B                       # expected deaths                          # MAX: Is pmax() a safety net in case X %*% B has negative results? I checked our values and this should be impossible given properties of X and B, so maybe we should get rid of it? May look like we don't understand our variables (or like ChatGPT wrote it)
+  mu <- X %*% B                       # expected deaths                          
   
   # Gradient of log-likelihood: dl/dgamma = colsums of diag(y_i/mu_i - 1)*X*diag(B)
   F_value <- diag(as.vector(y/mu - 1)) %*% X %*% diag(B)            
@@ -169,7 +169,7 @@ pnll_grad <- function(y, gamma, X, S, lambda){
 
 ## --- Test functions --- ##
 y <- data$deaths
-lambda <- 5e-5                                                                   # MAX: Changed 5*10^-5 to 5e-5 for consistency and ease of reading
+lambda <- 5e-5                                                                   
 k <- 80
 gamma <- rep(0,k)
 pnll(y, gamma, X, S, lambda)
@@ -287,8 +287,7 @@ Xt <- t(X)  # transpose of X to save some time in the loop
 
 gamma_hat <- gamma
 # Grid search over lambda values to find optimal smoothing parameter
-for (i in seq_along(lambda_seq)){                                                # MAX: Changed seq() to seq_along() to make more robust (avoid seq taking from 1 to first element of lamdba_seq)
-  
+for (i in seq_along(lambda_seq)){                                                
   # Current lambda value
   lambda <- lambda_seq[i]
   
@@ -312,8 +311,7 @@ for (i in seq_along(lambda_seq)){                                               
   
   # Compute Hessian matrices:
   # H0: Hessian of log-likelihood (without penalty)
-  H0 <- crossprod(X * sqrt(w))                                                   # MAX: Supposedly more efficient and saves memory when using crossprod instead (saves 0.6s over the entire gridsearch)
-  
+  H0 <- crossprod(X * sqrt(w))                                                  
   #  H_lambda: Full Hessian (log-likelihood + penalty)
   H_lambda <- H0 + lambda * S
   
@@ -352,7 +350,7 @@ pnll_w <- function(y, gamma, X, S, lambda, w) {
   #   w - vector of bootstrap weights 
   
   B <- exp(gamma)               # transformation of coefficients
-  mu <- X %*% B                 # expected deaths, avoiding zero                 # MAX: Is this a safety net in case X %*% B has negative results? I checked our values and this should be impossible given properties of X and B, so maybe we should get rid of it? May look like we don't understand our variables (or like ChatGPT wrote it)
+  mu <- X %*% B                 # expected deaths, avoiding zero                 
   
   # Smoothing penalty term
   penalty <- 1/2*lambda* sum(B*(S %*% B))   # OPTIMISED VERSION
@@ -379,8 +377,8 @@ pnll_grad_w <- function(y, gamma, X, S, lambda, w){
   #   w - vector of bootstrap weights 
   
   B <- exp(gamma)               # transform to original scale
-  mu <- X %*% B                 # expected deaths                                # MAX: Is this a safety net in case X %*% B has negative results? I checked our values and this should be impossible given properties of X and B, so maybe we should get rid of it? May look like we don't understand our variables (or like ChatGPT wrote it)
-
+  mu <- X %*% B                 # expected deaths                                
+  
   # Gradient of the weighted log-likelihood
   F_value <- diag(as.vector(w * (y/mu - 1))) %*% X %*% diag(B) 
   ll_pois_grad <- colSums(F_value)
@@ -508,19 +506,3 @@ final_plot  # display final plot
 # recovered the unobserved infection trajectory from the observed death data using
 # the known delay distribution and smoothness assumptions.
 
-
-# Natalia's notes:
-# - added a description for the project
-# - added comments and descriptions for all the functions
-# - added interpretation of final plot
-# - changed some of the matrices multiplications for optimization
-# - changed EFD calculation to chol decomp for a faster approach maybe? -- not sure if actually makes a difference
-# - added some sanity checks so some our values cannot be zero to avoid crashes
-# - we need to think/ask tutors how are we presenting the report because
-#   actually the first 3 exercises are just steps for alter building the model with
-#   the weights and the right lambda
-# - changed last plot --> error when running jackson's plots
-# - need to check if we can optimize lambda loop and bootstrap loop 
-
-
-# My code runs in ~ 40 secs
