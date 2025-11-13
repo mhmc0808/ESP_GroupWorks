@@ -1,11 +1,16 @@
 # Jackson Cramer (s2274544), Maximillian McCourt (s2145762), Natalia Montalvo Cabornero (s1969053)
 
-# Our group worked collaboratively on the development and optimisation of all exercises.
-# Although tasks were divided among us, we maintained a balanced workload through 
-# regular code reviews, debugging sessions, and problem-solving meetings.
-# Jackson focused on the development of the log likelihood and gradient functions, the finite-difference test, and the creation of our plots.
-# Max focused on building the function used to evaluate X_tilde, X, and S, as well as the creation of the 95% confidence interval through bootstrapping.
-# Natalia focused on code optimisation, the calculation of an appropriate lambda using the BIC criterion, and code comments. 
+# Our group worked collaboratively on the development and optimisation of all 
+# exercises. Although tasks were divided among us, we maintained a balanced 
+# workload through regular code reviews, debugging sessions, and problem-solving 
+# meetings.
+
+# Jackson focused on the development of the log likelihood and gradient 
+#   functions, the finite-difference test, and the creation of our plots.
+# Max focused on building the function used to evaluate X_tilde, X, and S, as 
+#   well as the creation of the 95% confidence interval through bootstrapping.
+# Natalia focused on code optimisation, the calculation of an appropriate lambda 
+#   using the BIC criterion, and code comments. 
 
 # Link to github repo: https://github.com/mhmc0808/ESP_GroupWorks.git
 # Note about github repo: Our group used the same repo for the other projects.
@@ -13,14 +18,14 @@
 
 ######### GENERAL DESCRIPTION #########
 
-# This project implements a smooth deconvolution model to estimate daily COVID-19 
-# infections from observed hospital death data in England during 2020. 
+# This project implements a smooth deconvolution model to estimate daily 
+# COVID-19 infections from observed hospital death data in England during 2020. 
 # The model reconstructs the infection trajectory by deconvolving death counts 
-# using the probabilistic delay from infection to death.
-# We model the daily infections as a smooth function of time using B-splines, 
-# and fit the model by minimising a penalized negative log likelihood of a Poisson distribution. 
-# This allows us to model the unobserved infections that led to the observed deaths.
-
+# using a probabilistic delay distribution from infection to death. We model the 
+# daily infections as a smooth function of time using B-splines, and fit the 
+# model by minimising a penalized negative log likelihood of a Poisson 
+# distribution. This allowed us to model the unobserved infections that led to 
+# the observed deaths.
 
 # Import necessary libraries and read data
 library(splines)
@@ -236,8 +241,10 @@ initial_plot <- ggplot() +
   # True deaths
   geom_point(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths")) +
   # Fitted deaths and infections
-  geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), linewidth = 0.8) +
-  geom_line(aes(x = f_seq, y = fitted_infections, color = "Fitted Daily Infections"), linewidth = 0.8) +
+  geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), 
+            linewidth = 0.8) +
+  geom_line(aes(x = f_seq, y = fitted_infections, color = "Fitted Daily Infections"), 
+            linewidth = 0.8) +
   labs( # label axes and title
     x = "Day of 2020",
     y = "Counts",
@@ -445,12 +452,16 @@ fitted_infections_optimised <- as.vector(X_tilde %*% B_bic_hat)
 # infection curve from model with optimised beta vector
 final_plot <- ggplot() +
   # True deaths
-  geom_point(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths"), size = 0.8) +
+  geom_point(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths"), 
+             size = 0.8) +
   # Fitted deaths
-  geom_line(aes(x = day_of_2020, y = fitted_deaths_optimised, color = "Fitted Deaths"), linewidth = 0.8) +
+  geom_line(aes(x = day_of_2020, y = fitted_deaths_optimised, color = "Fitted Deaths"), 
+            linewidth = 0.8) +
   # Daily infection rate with 95% CI
-  geom_ribbon(aes(x = f_seq, ymin = f_hat_int[1,], ymax = f_hat_int[2,]), fill = "blue", alpha = 0.2) +
-  geom_line(aes(x = f_seq, y = fitted_infections_optimised, color = "Fitted Daily Infections"), linewidth = 0.8) +
+  geom_ribbon(aes(x = f_seq, ymin = f_hat_int[1,], ymax = f_hat_int[2,]), fill = "blue", 
+              alpha = 0.2) +
+  geom_line(aes(x = f_seq, y = fitted_infections_optimised, color = "Fitted Daily Infections"), 
+            linewidth = 0.8) +
   labs( # label axes and title
     x = "Day of 2020",
     y = "Counts",
