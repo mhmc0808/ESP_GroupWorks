@@ -253,9 +253,9 @@ initial_plot <- ggplot() +
   ) +
   scale_color_manual( # manually assign colors
     values = c(
-      "Observed Deaths" = "black",
-      "Fitted Deaths" = "red",
-      "Fitted Daily Infections" = "blue"
+      "Observed Deaths" = "red",
+      "Fitted Deaths" = "darkorange",
+      "Fitted Daily Infections" = "deepskyblue4"
     )
   ) +
   theme_minimal()
@@ -458,7 +458,7 @@ final_plot <- ggplot() +
   geom_line(aes(x = day_of_2020, y = fitted_deaths_optimised, color = "Fitted Deaths"), 
             linewidth = 0.8) +
   # Daily infection rate with 95% CI
-  geom_ribbon(aes(x = f_seq, ymin = f_hat_int[1,], ymax = f_hat_int[2,]), fill = "blue", 
+  geom_ribbon(aes(x = f_seq, ymin = f_hat_int[1,], ymax = f_hat_int[2,]), fill = "deepskyblue4", 
               alpha = 0.2) +
   geom_line(aes(x = f_seq, y = fitted_infections_optimised, color = "Fitted Daily Infections"), 
             linewidth = 0.8) +
@@ -470,9 +470,9 @@ final_plot <- ggplot() +
   ) +
   scale_color_manual( # manually assign colors
     values = c(
-      "Observed Deaths" = "black",
-      "Fitted Deaths" = "red",
-      "Fitted Daily Infections" = "blue"
+      "Observed Deaths" = "red",
+      "Fitted Deaths" = "darkorange",
+      "Fitted Daily Infections" = "deepskyblue4"
     )
   ) +
   theme_minimal()
