@@ -21,10 +21,10 @@
 # This project implements a smooth deconvolution model to estimate daily 
 # COVID-19 infections from observed hospital death data in England during 2020. 
 # The model reconstructs the infection trajectory by deconvolving death counts 
-# using a probabilistic delay distribution from infection to death. We model the 
+# using a probabilistic distribution from infection to death. We model the 
 # daily infections as a smooth function of time using B-splines, and fit the 
-# model by minimising a penalized negative log likelihood of a Poisson 
-# distribution. This allowed us to model the unobserved infections that led to 
+# model by minimising a penalised negative log likelihood of a Poisson 
+# distribution. This allows us to model the unobserved infections that led to 
 # the observed deaths.
 
 # Import necessary libraries and read data
