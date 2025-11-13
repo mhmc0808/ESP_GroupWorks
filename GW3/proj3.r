@@ -58,9 +58,9 @@ evaluate_matrices <- function(n, k = 80, edur = 3.151, sdur = 0.469, f_seq) {
   step <- middle_seq[2] - middle_seq[1]
   # Use step size to extend sequence of knots
   knots <- c(
-    seq(to = min(middle_seq) - step, by = step, length.out = 3), # 3 knots below
-    middle_seq,                                                  # middle knots
-    seq(from = max(middle_seq) + step, by = step, length.out = 3)# 3 knots above
+    seq(to = min(middle_seq) - step, by = step, length.out = 3),  # 3 knots below
+    middle_seq,                                                   # middle knots
+    seq(from = max(middle_seq) + step, by = step, length.out = 3) # 3 knots above
   )
   
   # B-spline basis matrix for infection function f(t)
@@ -319,8 +319,8 @@ for (i in seq_along(lambda_seq)){
   w <- as.vector(y/(mu_hat^2))
   
   # Compute Hessian matrices:
-  H0 <- crossprod(X * sqrt(w)) # Log-Likelihood Hessian, without penalty
-  H_lambda <- H0 + lambda * S # Penalised Hessian, with smoothing parameter
+  H0 <- crossprod(X * sqrt(w))  # Log-Likelihood Hessian, without penalty
+  H_lambda <- H0 + lambda * S   # Penalised Hessian, with smoothing parameter
   
   # Compute Effective Degrees of Freedom (EDF)
   R <- chol(H_lambda)
@@ -421,8 +421,8 @@ for (b in 1:n_bootstrap) {
   # lambda and gamma parameters (that previously produced minimised BIC).
   fit_b <- optim(par = gamma_bic, fn = pnll_w, gr = pnll_grad_w,       
                  y = y, X = X, S = S, lambda = lambda_bic, method = "BFGS", 
-                 w = wb,                                # bootstrap weights
-                 control=list(maxit=1000, reltol=1e-8)) # ensure convergence              
+                 w = wb,                                 # bootstrap weights
+                 control=list(maxit=1000, reltol=1e-8))  # ensure convergence              
   
   # Extract fitted parameters and transform to original scale
   B_b <- exp(fit_b$par) 
