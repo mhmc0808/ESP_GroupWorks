@@ -3,9 +3,9 @@
 # Our group worked collaboratively on the development and optimisation of all exercises.
 # Although tasks were divided among us, we maintained a balanced workload through 
 # regular code reviews, debugging sessions, and problem-solving meetings.
-# Jackson focused ---
-# Max focused on ---
-# Natalia focused on ---
+# Jackson focused on the development of the log likelihood and gradient functions, the finite-difference test, and the creation of our plots.
+# Max focused on building the function used to evaluate X_tilde, X, and S, as well as the creation of the 95% confidence interval through bootstrapping.
+# Natalia focused on code optimisation, the calculation of an appropriate lambda using the BIC criterion, and code comments. 
 
 # Link to github repo: https://github.com/mhmc0808/ESP_GroupWorks.git
 # Note about github repo: Our group used the same repo for the other projects.
@@ -13,12 +13,14 @@
 
 ######### GENERAL DESCRIPTION #########
 
-# This project implements a smooth deconvolution to estimate the daily COVID-19 
-# infections from observed death data. The model reconstructs the infection 
-# trajectory by deconvolving death counts with a delay distribution from infection
-# to death. 
+# This project implements a smooth deconvolution model to estimate daily COVID-19 
+# infections from observed hospital death data in England during 2020. 
+# The model reconstructs the infection trajectory by deconvolving death counts 
+# using the probabilistic delay from infection to death.
+# We model the daily infections as a smooth function of time using B-splines, 
+# and fit the model by minimising a penalized negative log likelihood of a Poisson distribution. 
+# This allows us to model the unobserved infections that led to the observed deaths.
 
-#setwd("C:/Users/Max McCourt/OneDrive/Documents/Master's Year/Semester 1/ESP/Group Works/GW3")
 
 # Import necessary libraries and read data
 library(splines)
@@ -68,7 +70,6 @@ evaluate_matrices <- function(n, k = 80, edur = 3.151, sdur = 0.469, f_seq) {
   r <- nrow(X_tilde)      # number of infection days
   
   # Build convolution weight matrix W
-  # W[i, t] = pd[30 + i - t] if in valid range, else 0
   W <- matrix(0, n, r)
   for (i in 1:n) {
     idxs <- (30 + i - (1:m))              # indices accounting for 30-day lag
@@ -236,18 +237,18 @@ initial_plot <- ggplot() +
   geom_point(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths")) +
   # Fitted deaths and infections
   geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), linewidth = 0.8) +
-  geom_line(aes(x = f_seq, y = fitted_infections, color = "Daily Infections"), linewidth = 0.8) +
+  geom_line(aes(x = f_seq, y = fitted_infections, color = "Fitted Daily Infections"), linewidth = 0.8) +
   labs( # label axes and title
     x = "Day of 2020",
     y = "Counts",
     color = "Legend",
-    title = "Observed & Fitted Deaths with Daily Infections (Sanity Check)"
+    title = "Observed & Fitted Deaths with Fitted Daily Infections (using arbitrary lambda)"
   ) +
   scale_color_manual( # manually assign colors
     values = c(
       "Observed Deaths" = "black",
       "Fitted Deaths" = "red",
-      "Daily Infections" = "blue"
+      "Fitted Daily Infections" = "blue"
     )
   ) +
   theme_minimal()
@@ -308,7 +309,7 @@ for (i in seq_along(lambda_seq)){
   mu_hat <- as.vector(X %*% beta_par)
   
   # Compute weight vector for Hessian calculation
-  w <- as.vector(y/(mu_hat^2)) 
+  w <- as.vector(y/(mu_hat^2))
   
   # Compute Hessian matrices:
   H0 <- crossprod(X * sqrt(w)) # Log-Likelihood Hessian, without penalty
@@ -435,7 +436,7 @@ f_hat_int <- apply(f_hat_boot, 1, quantile, probs = c(0.025, 0.975))
 B_bic_hat <- exp(gamma_bic)   
 
 # Re-calculate fitted deaths and fitted infections using optimised beta vector
-fitted_deaths <- as.vector(X %*% B_bic_hat)                                         
+fitted_deaths_optimised <- as.vector(X %*% B_bic_hat)                                         
 fitted_infections_optimised <- as.vector(X_tilde %*% B_bic_hat)
 
 ## --- Final plot --- ##
@@ -446,25 +447,23 @@ final_plot <- ggplot() +
   # True deaths
   geom_point(aes(x = day_of_2020, y = true_deaths, color = "Observed Deaths"), size = 0.8) +
   # Fitted deaths
-  geom_line(aes(x = day_of_2020, y = fitted_deaths, color = "Fitted Deaths"), linewidth = 0.8) +
+  geom_line(aes(x = day_of_2020, y = fitted_deaths_optimised, color = "Fitted Deaths"), linewidth = 0.8) +
   # Daily infection rate with 95% CI
   geom_ribbon(aes(x = f_seq, ymin = f_hat_int[1,], ymax = f_hat_int[2,]), fill = "blue", alpha = 0.2) +
-  geom_line(aes(x = f_seq, y = fitted_infections_optimised, color = "Daily Infections"), linewidth = 0.8) +
+  geom_line(aes(x = f_seq, y = fitted_infections_optimised, color = "Fitted Daily Infections"), linewidth = 0.8) +
   labs( # label axes and title
     x = "Day of 2020",
     y = "Counts",
     color = "Legend",
-    title = "Observed & Fitted Deaths with Daily Infections (w/ 95% CI)"
+    title = "Observed & Fitted Deaths with Fitted Daily Infections with 95% Confidence Limits"
   ) +
   scale_color_manual( # manually assign colors
     values = c(
       "Observed Deaths" = "black",
       "Fitted Deaths" = "red",
-      "Daily Infections" = "blue"
+      "Fitted Daily Infections" = "blue"
     )
   ) +
   theme_minimal()
 
 final_plot  # display final plot
-
-
